@@ -23,7 +23,9 @@ async function load(){
   const data=await response.json();
   if(!response.ok)throw new Error(data.error||"خطا در پیگیری");
   box.textContent=names[data.status]||"وضعیت نامشخص";
-  document.getElementById("date").textContent=data.starts_at?"ساعت انتخابی به وقت ایران: "+data.starts_at:"";
+  const when=data.starts_at||"";
+  const persian=when?new Intl.DateTimeFormat("fa-IR-u-ca-persian",{weekday:"long",year:"numeric",month:"long",day:"numeric",timeZone:"UTC"}).format(new Date(when.slice(0,10)+"T12:00:00Z")):"";
+  document.getElementById("date").textContent=when?"تاریخ و ساعت ایران: "+persian+" • "+when.slice(11,16):"";
  }catch(e){box.textContent=e.message}
 }
 document.getElementById("refresh").onclick=load;load();

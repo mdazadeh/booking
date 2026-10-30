@@ -1,0 +1,19 @@
+name: PHP Syntax Check
+on:
+  push:
+    branches: [main]
+    paths: ['server/**', '.github/workflows/server-check.yml']
+  pull_request:
+    paths: ['server/**', '.github/workflows/server-check.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax validation
+        run: find server -name '*.php' -type f -print0 | xargs -0 -n1 php -l
+      - name: Check required files
+        run: test -f server/sql/schema.sql && test -f server/app/config.example.php

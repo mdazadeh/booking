@@ -16,6 +16,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.LocalDate
+import java.time.LocalTime
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 val Forest=Color(0xFF09291D)
 val Green=Color(0xFF23A765)
@@ -35,6 +38,8 @@ fun NativeApp(context: Context) {
     var activeDay by remember { mutableStateOf(Jalali.today()) }
     var editSession by remember { mutableStateOf<LocalSession?>(null) }
     var online by remember { mutableStateOf(false) }
+    var clock by remember { mutableStateOf(LocalTime.now(Jalali.zone).withNano(0)) }
+    LaunchedEffect(Unit) { while (isActive) { clock=LocalTime.now(Jalali.zone).withNano(0); delay(1000L) } }
     val clients=remember(revision){db.clients()}
     val sessions=remember(revision){db.sessions()}
     fun refresh(){revision++}
@@ -94,7 +99,7 @@ fun NativeApp(context: Context) {
                     verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween){
                     Column {
                         Text("وقت‌یار",color=Color.White,fontSize=26.sp,fontWeight=FontWeight.Bold)
-                        Text(Jalali.label(Jalali.today()),fontSize=13.sp,color=Color(0xFFC5EAD0))
+                        Text(Jalali.label(Jalali.today())+" • "+clock.toString(),fontSize=13.sp,color=Color(0xFFC5EAD0))
                     }
                     Surface(color=Color(0xFF21563A),shape=RoundedCornerShape(16.dp)) {
                         Text("نسخه ۱.۲ آزمایشی",color=Color.White,fontSize=12.sp,
@@ -123,7 +128,7 @@ fun NativeApp(context: Context) {
                 })
                 2->ClientsPanel(db,clients,sessions,{refresh()})
                 3->SessionEditor(db,clients,sessions,editSession,
-                    onEditClear={editSession=null},onChange={refresh()},
+                    onEditClear={editSession=null},onChange={refresh()},onSelectEdit={editSession=it},
                     onGoClients={currentPage=2})
                 else->MorePanel(context,onLogout={signedIn=false},onOpenOnline={online=true})
             }

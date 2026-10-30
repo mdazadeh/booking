@@ -18,7 +18,7 @@ import java.time.LocalTime
 @Composable
 fun SessionEditor(
     store:BookingStore,clients:List<LocalClient>,sessions:List<LocalSession>,
-    edit:LocalSession?,onEditClear:()->Unit,onChange:()->Unit,onGoClients:()->Unit
+    edit:LocalSession?,onEditClear:()->Unit,onChange:()->Unit,onSelectEdit:(LocalSession)->Unit,onGoClients:()->Unit
 ) {
     var clientId by remember{mutableStateOf<Long?>(null)}
     var day by remember{mutableStateOf(Jalali.today())}
@@ -164,13 +164,7 @@ fun SessionEditor(
         if(active.isEmpty())Text("نوبتی ثبت نشده است.",color=Slate)
         active.sortedByDescending{it.startMillis}.take(120).forEach{s->
             val name=clients.firstOrNull{it.id==s.clientId}?.name?:"مراجع"
-            SessionCard(s,name){
-                clientId=s.clientId;day=Jalali.time(s.startMillis).toLocalDate()
-                time=Jalali.time(s.startMillis).toLocalTime().toString()
-                minutes=s.minutes.toString();topic=s.topic
-                // Editing a session in the same screen: selection is controlled by the parent.
-                feedback="برای ویرایش این نوبت، روی آن در صفحه تقویم کلیک کنید."
-            }
+            SessionCard(s,name){ onSelectEdit(s) }
         }
     }
     deleting?.let{target->

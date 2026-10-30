@@ -70,6 +70,7 @@ fun ClientsPanel(
                 TextButton(onClick={openEditor(selected)}){Text("ویرایش")}
             }
             val clientSessions=sessions.filter{it.clientId==selected.id}.sortedByDescending{it.startMillis}
+            val notes=remember(selected.id,noteRevision){store.notes(selected.id)}
             LazyColumn(verticalArrangement=Arrangement.spacedBy(12.dp)){
                 item{
                     Card(shape=RoundedCornerShape(21.dp),
@@ -117,7 +118,6 @@ fun ClientsPanel(
                     }
                 }
                 item{Text("تاریخچه یادداشت‌ها",fontSize=18.sp,fontWeight=FontWeight.Bold)}
-                val notes=remember(selected.id,noteRevision){store.notes(selected.id)}
                 items(notes,key={it.id}){note->
                     Card(shape=RoundedCornerShape(16.dp)){
                         Column(Modifier.fillMaxWidth().padding(14.dp),

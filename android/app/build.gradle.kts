@@ -16,7 +16,7 @@ android {
     }
     buildTypes {
         getByName("debug") {
-            applicationIdSuffix = ".beta"
+            applicationIdSuffix = ".beta13"
         }
     }
     compileOptions {

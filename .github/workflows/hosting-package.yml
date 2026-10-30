@@ -1,0 +1,31 @@
+name: Package Shared Hosting
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - 'docs/HOSTING-SETUP.md'
+      - '.github/workflows/hosting-package.yml'
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check PHP syntax
+        run: find server -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Package hosting
+        run: |
+          mkdir -p dist/booking-hosting
+          cp -r server/public server/app server/sql dist/booking-hosting/
+          cp docs/HOSTING-SETUP.md dist/booking-hosting/INSTALL.md
+          test ! -e dist/booking-hosting/app/config.php
+          cd dist && zip -qr booking-hosting-v1.3.zip booking-hosting
+      - uses: actions/upload-artifact@v4
+        with:
+          name: booking-shared-hosting-zip
+          path: dist/booking-hosting-v1.3.zip
+          if-no-files-found: error
+          retention-days: 30

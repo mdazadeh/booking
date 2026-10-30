@@ -1,0 +1,49 @@
+name: PHP Booking Integration
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - '.github/workflows/server-integration.yml'
+permissions:
+  contents: read
+jobs:
+  booking-test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test_root_pw
+          MYSQL_DATABASE: booking_ci
+          MYSQL_USER: booking_ci
+          MYSQL_PASSWORD: test_only_pass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=15
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP extensions
+        run: |
+          php -v
+          php -m | grep -qi pdo_mysql || (sudo apt-get update -qq && sudo apt-get install -y php-mysql)
+      - name: Prepare test DB and local server
+        run: |
+          mysql -h 127.0.0.1 -ubooking_ci -ptest_only_pass booking_ci < server/sql/schema.sql
+          cat > server/app/config.php <<'PHP'
+          <?php
+          return [
+            'dsn'=>'mysql:host=127.0.0.1;port=3306;dbname=booking_ci;charset=utf8mb4',
+            'user'=>'booking_ci','pass'=>'test_only_pass','base_url'=>'http://127.0.0.1:8787'
+          ];
+          PHP
+          php -r '$pdo=new PDO("mysql:host=127.0.0.1;dbname=booking_ci","booking_ci","test_only_pass");$pdo->prepare("INSERT INTO admins(username,password_hash) VALUES(?,?)")->execute(["ciadmin",password_hash("TestOnlyPass_1234",PASSWORD_DEFAULT)]);'
+          php -S 127.0.0.1:8787 -t server/public server/tests/router.php >/tmp/booking-php.log 2>&1 &
+          sleep 2
+      - name: End-to-end booking and conflict checks
+        run: bash server/tests/e2e.sh

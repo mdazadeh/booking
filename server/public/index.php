@@ -89,13 +89,27 @@ function busy(PDO $db, DateTimeImmutable $start, DateTimeImmutable $end, ?int $i
 function freeSlots(PDO $db, string $day): array {
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/D', $day)) fail('Invalid day');
     [$base, $_] = dayAndTime($day, '10:00');
-    $slots = [];
-    for ($minutes = 0; $minutes <= 600; $minutes += 5) {
-        $start = $base->modify('+'.$minutes.' minutes');
-        $end = $start->modify('+60 minutes');
-        if (validCustomerSlot($start, $end) && !busy($db, $start, $end)) {
-            $slots[] = $start->format('H:i');
+    $rangeStart=stamp($base);
+    $rangeEnd=stamp($base->modify('+11 hours'));
+    $q=$db->prepare("SELECT starts_at,ends_at FROM appointments
+      WHERE status='approved' AND ends_at>? AND starts_at<?");
+    $q->execute([$rangeStart,$rangeEnd]);
+    $periods=$q->fetchAll();
+    $q=$db->prepare("SELECT starts_at,ends_at FROM booking_requests
+      WHERE status='pending' AND hold_until>UTC_TIMESTAMP() AND ends_at>? AND starts_at<?");
+    $q->execute([$rangeStart,$rangeEnd]);
+    $periods=array_merge($periods,$q->fetchAll());
+    $slots=[];
+    for ($minutes=0;$minutes<=600;$minutes+=5) {
+        $start=$base->modify('+'.$minutes.' minutes');
+        $end=$start->modify('+60 minutes');
+        if (!validCustomerSlot($start,$end)) continue;
+        $a=stamp($start);$b=stamp($end);
+        $taken=false;
+        foreach ($periods as $p) {
+            if ($p['starts_at']<$b && $p['ends_at']>$a) { $taken=true;break; }
         }
+        if (!$taken) $slots[]=$start->format('H:i');
     }
     return $slots;
 }

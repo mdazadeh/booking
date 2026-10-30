@@ -52,9 +52,12 @@ class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.
     override fun onConfigure(db:SQLiteDatabase){db.setForeignKeyConstraintsEnabled(true)}
     override fun onCreate(db:SQLiteDatabase){
         db.execSQL("CREATE TABLE clients(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,phone TEXT NOT NULL DEFAULT '',history TEXT NOT NULL DEFAULT '')")
-        db.execSQL("CREATE TABLE sessions(id INTEGER PRIMARY KEY AUTOINCREMENT,client_id INTEGER NOT NULL REFERENCES clients(id),start_millis INTEGER NOT NULL,minutes INTEGER NOT NULL DEFAULT 60,status TEXT NOT NULL DEFAULT 'approved',series TEXT,topic TEXT NOT NULL DEFAULT '',
-            sync_key TEXT UNIQUE,remote_id INTEGER UNIQUE,remote_version INTEGER NOT NULL DEFAULT 0,
-            dirty INTEGER NOT NULL DEFAULT 1)")
+        db.execSQL("""CREATE TABLE sessions(id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id INTEGER NOT NULL REFERENCES clients(id), start_millis INTEGER NOT NULL,
+            minutes INTEGER NOT NULL DEFAULT 60,status TEXT NOT NULL DEFAULT 'approved',
+            series TEXT,topic TEXT NOT NULL DEFAULT '',sync_key TEXT UNIQUE,
+            remote_id INTEGER UNIQUE,remote_version INTEGER NOT NULL DEFAULT 0,
+            dirty INTEGER NOT NULL DEFAULT 1)""")
         db.execSQL("CREATE INDEX session_time ON sessions(start_millis)")
         db.execSQL("CREATE INDEX session_series ON sessions(series)")
         db.execSQL("CREATE INDEX session_client ON sessions(client_id)")
@@ -173,7 +176,10 @@ class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.
     }
     fun dirtySessions():List<LocalSession> = sessions().filter{it.dirty}
     fun markSynced(id:Long,remoteId:Long,version:Int) {
-        val v=ContentValues().apply{put("remote_id",remoteId);put("remote_version",version);put("dirty",0)}
+        val v=ContentValues().apply{
+            if(remoteId>0)put("remote_id",remoteId) else putNull("remote_id")
+            put("remote_version",version);put("dirty",0)
+        }
         writableDatabase.update("sessions",v,"id=?",arrayOf(id.toString()))
     }
     /** Never overwrite unsynced local edits with remote state. */

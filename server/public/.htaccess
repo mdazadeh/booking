@@ -1,6 +1,8 @@
 Options -Indexes
 DirectoryIndex index.php
 RewriteEngine On
+# Forward Bearer header on PHP/FastCGI shared hosting
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 RewriteRule ^api/v1(?:/.*)?$ index.php [QSA,L]
 RewriteRule ^r/([a-f0-9]{64})/?$ r/index.php [QSA,L]
 RewriteRule ^status/?$ status/index.php [QSA,L]

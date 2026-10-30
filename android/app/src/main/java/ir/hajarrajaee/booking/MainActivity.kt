@@ -91,8 +91,8 @@ private suspend fun request(method: String, endpoint: String, token: String = ""
 data class Entry(val id: Long, val name: String, val time: String, val status: String)
 @Composable
 fun BookingScreen(context: Context) {
-    val preferences = remember { context.getSharedPreferences("booking_auth", Context.MODE_PRIVATE) }
-    var token by remember { mutableStateOf(preferences.getString("token", "") ?: "") }
+    // Remote test panel session is kept in memory, not plaintext preferences.
+    var token by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var section by remember { mutableIntStateOf(0) }
@@ -133,7 +133,7 @@ fun BookingScreen(context: Context) {
                     color = Color(0xFFB7DEC8))
             }
             if (token.isNotEmpty()) TextButton(onClick = {
-                preferences.edit().remove("token").apply()
+                // Token cleared in memory on logout
                 token = ""; requests = emptyList(); appointments = emptyList()
             }) { Text("خروج", color = Color.White) }
         }
@@ -154,7 +154,7 @@ fun BookingScreen(context: Context) {
                                     val auth = request("POST", "/auth/login", body = JSONObject()
                                         .put("username", username).put("password", password))
                                     token = auth.getString("token")
-                                    preferences.edit().putString("token", token).apply()
+                                    // Never persist raw bearer token in unencrypted preferences
                                     password = ""; error = ""
                                 } catch(e: Exception) { error = e.message ?: "ورود ناموفق" }
                                 busy = false

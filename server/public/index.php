@@ -40,7 +40,7 @@ function rateLimit(PDO $db, string $scope, int $max, int $seconds): void {
     if ((int)$q->fetchColumn() > $max) fail('Too many requests. Try later.', 429);
 }
 function requireAdmin(PDO $db): void {
-    $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    $header = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
     if (!preg_match('/^Bearer ([0-9a-f]{64})$/', $header, $m)) fail('Unauthorized', 401);
     $q = $db->prepare('SELECT id FROM admins WHERE token_hash=? AND token_expires>UTC_TIMESTAMP()');
     $q->execute([hash('sha256', $m[1])]);

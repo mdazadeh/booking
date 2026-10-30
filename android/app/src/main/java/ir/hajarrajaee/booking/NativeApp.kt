@@ -19,6 +19,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 val Forest=Color(0xFF09291D)
 val Green=Color(0xFF23A765)
@@ -42,7 +43,31 @@ fun NativeApp(context: Context) {
     LaunchedEffect(Unit) { while (isActive) { clock=LocalTime.now(Jalali.zone).withNano(0); delay(1000L) } }
     val clients=remember(revision){db.clients()}
     val sessions=remember(revision){db.sessions()}
-    fun refresh(){revision++}
+    val scope=rememberCoroutineScope()
+    var syncWarning by remember {mutableStateOf("")}
+    fun refresh(){
+        ReminderScheduler.replace(context,sessions,db.sessions())
+        revision++
+        if(SyncClient.connected(context))scope.launch{
+            try { val report=SyncClient.synchronize(context)
+                if(report.conflicts.isNotEmpty())syncWarning="همگام‌سازی تعارض دارد: "+report.conflicts.first()
+                revision++
+            } catch(e:Exception){syncWarning="همگام‌سازی: "+(e.message?:"خطا")}
+        }
+    }
+    LaunchedEffect(signedIn){
+        if(signedIn) {
+            ReminderScheduler.refresh(context)
+            if(SyncClient.connected(context)) {
+                SyncWorker.schedule(context)
+                try{
+                    val report=SyncClient.synchronize(context)
+                    if(report.conflicts.isNotEmpty())syncWarning=report.conflicts.first()
+                    revision++
+                }catch(e:Exception){syncWarning="همگام‌سازی: "+(e.message?:"خطا")}
+            }
+        }
+    }
     if(!signedIn) {
         Column(Modifier.fillMaxSize().background(Pale).verticalScroll(rememberScrollState()).padding(22.dp),
             verticalArrangement=Arrangement.Center) {
@@ -130,8 +155,10 @@ fun NativeApp(context: Context) {
                 3->SessionEditor(db,clients,sessions,editSession,
                     onEditClear={editSession=null},onChange={refresh()},onSelectEdit={editSession=it},
                     onGoClients={currentPage=2})
-                else->MorePanel(context,onLogout={signedIn=false},onOpenOnline={online=true})
+                else->MorePanel(context,onLogout={signedIn=false},onOpenOnline={online=true},
+                    onDataChanged={refresh()})
             }
+            if(syncWarning.isNotBlank() && currentPage==4)Text(syncWarning,color=Color(0xFFA34B2D))
         }
     }
 }
@@ -191,7 +218,7 @@ fun SessionCard(s:LocalSession,name:String,onClick:(()->Unit)?) {
 }
 
 @Composable
-private fun MorePanel(context:Context,onLogout:()->Unit,onOpenOnline:()->Unit) {
+private fun MorePanel(context:Context,onLogout:()->Unit,onOpenOnline:()->Unit,onDataChanged:()->Unit) {
     var old by remember{ mutableStateOf("") }
     var new by remember{ mutableStateOf("") }
     var feedback by remember{ mutableStateOf("") }
@@ -220,7 +247,10 @@ private fun MorePanel(context:Context,onLogout:()->Unit,onOpenOnline:()->Unit) {
                 OutlinedButton(onClick=onOpenOnline){Text("ورود به پنل آنلاین (آزمایشی)")}
             }
         }
-        Text("هشدار حریم خصوصی: این نسخه آزمایشی هنوز رمزنگاری کامل دیتابیس پرونده‌ها و پشتیبان‌گیری امن ندارد؛ برای اطلاعات درمانی واقعی استفاده نشود.",
+        ReminderControls(context)
+        BackupControls(context,onRestored=onDataChanged)
+        ServerControls(context,onDataChanged=onDataChanged)
+        Text("حفاظت فیلدهای شخصی با Android Keystore و بکاپ با رمز مجزا اضافه شده است. همگام‌سازی فعلاً فقط نوبت و نام/شماره تماس را پوشش می‌دهد؛ شرح حال و یادداشت‌ها روی گوشی می‌مانند. تا پایان تست امنیتی اطلاعات حساس واقعی ثبت نکنید.",
             fontSize=13.sp,color=Color(0xFF99522A))
         OutlinedButton(onClick=onLogout){Text("خروج از اپلیکیشن")}
     }

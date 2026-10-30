@@ -78,6 +78,20 @@ fun SessionEditor(
                 }
                 Text("۲. انتخاب روز (تقویم کامل جلالی)",fontWeight=FontWeight.Bold,fontSize=17.sp)
                 JalaliMonthPicker(day,onSelect={day=it},sessions=sessions)
+                Text("پیشنهاد بهترین ساعت آزاد",fontWeight=FontWeight.Bold,fontSize=16.sp,color=Forest)
+                Text("پیشنهادها بر اساس نوبت‌های گوشی محاسبه می‌شوند؛ در حالت آنلاین تأیید سرور الزامی است.",
+                    fontSize=12.sp,color=Slate)
+                val suggested=remember(sessions,day,minutes){
+                    SmartSlots.suggest(sessions,day,(minutes.toIntOrNull()?:60).coerceIn(5,480),limit=6)
+                }
+                Column(verticalArrangement=Arrangement.spacedBy(5.dp)){
+                    suggested.forEach { slot ->
+                        OutlinedButton(onClick={day=slot.date;time=slot.time.toString()},modifier=Modifier.fillMaxWidth()){
+                            Text(Jalali.label(slot.date)+"  "+slot.time+"  • "+slot.reason,fontSize=12.sp)
+                        }
+                    }
+                    if(suggested.isEmpty())Text("در بازه پیشنهادی زمان آزادی پیدا نشد.",color=Slate)
+                }
                 Text("۳. تعیین ساعت و مدت دقیق",fontWeight=FontWeight.Bold,fontSize=17.sp)
                 Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
                     OutlinedTextField(time,{time=it},label={Text("شروع HH:mm")},

@@ -190,6 +190,15 @@ try {
     }
 
     if (str_starts_with($path,'/admin/')) requireAdmin($db);
+    if ($path === '/admin/sync/snapshot' && $method === 'GET') {
+        require dirname(__DIR__).'/app/sync.php';
+        snapshot($db);
+    }
+    if ($path === '/admin/sync/mutate' && $method === 'POST') {
+        require dirname(__DIR__).'/app/sync.php';
+        rateLimit($db,'sync-write',180,60);
+        syncMutation($db,$body);
+    }
     if ($path === '/admin/overview' && $method === 'GET') {
         $req = $db->query("SELECT id,name,starts_at,
           IF(status='pending' AND hold_until<=UTC_TIMESTAMP(),'expired',status) AS status

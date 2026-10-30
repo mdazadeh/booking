@@ -10,8 +10,8 @@ android {
         applicationId = "ir.hajarrajaee.booking"
         minSdk = 26
         targetSdk = 35
-        versionCode = 12
-        versionName = "1.2.0-beta1"
+        versionCode = 13
+        versionName = "1.3.0-beta2"
         buildConfigField("String", "API_BASE_URL", "\"https://hajarrajaee.ir/api/v1\"")
     }
     buildTypes {
@@ -34,5 +34,6 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.work:work-runtime-ktx:2.10.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

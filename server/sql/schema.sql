@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS appointments (
  starts_at DATETIME NOT NULL,
  ends_at DATETIME NOT NULL,
  status ENUM('approved','cancelled') NOT NULL DEFAULT 'approved',
+ sync_key VARCHAR(64) NULL UNIQUE,
+ sync_version INT UNSIGNED NOT NULL DEFAULT 1,
  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
  INDEX ix_appointment_period(starts_at,ends_at,status),
  CONSTRAINT fk_appointment_request FOREIGN KEY(request_id) REFERENCES booking_requests(id)

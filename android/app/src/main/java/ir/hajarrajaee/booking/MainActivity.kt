@@ -3,7 +3,6 @@ package ir.hajarrajaee.booking
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.icu.util.PersianCalendar
 import android.icu.util.Calendar
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -56,7 +55,7 @@ class MainActivity : ComponentActivity() {
 
 private fun jalali(date: String): String = try {
     val d = LocalDate.parse(date.take(10))
-    val p = PersianCalendar(android.icu.util.TimeZone.getTimeZone("Asia/Tehran"))
+    val p = Calendar.getInstance(android.icu.util.TimeZone.getTimeZone("Asia/Tehran"), android.icu.util.ULocale("fa_IR@calendar=persian"))
     p.timeInMillis = d.atStartOfDay(tehran).toInstant().toEpochMilli()
     p.get(Calendar.YEAR).toString() + "/" +
         (p.get(Calendar.MONTH)+1).toString().padStart(2,'0') + "/" +

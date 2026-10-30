@@ -11,6 +11,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -72,7 +75,9 @@ fun NativeApp(context: Context) {
         Column(Modifier.fillMaxSize().background(Pale).verticalScroll(rememberScrollState()).padding(22.dp),
             verticalArrangement=Arrangement.Center) {
             Card(shape=RoundedCornerShape(30.dp),
-                colors=CardDefaults.cardColors(containerColor=Forest)) {
+                border=BorderStroke(1.dp,Color(0xFFAAFFE4).copy(alpha=0.6f)),
+                elevation=CardDefaults.cardElevation(defaultElevation=16.dp),
+                colors=CardDefaults.cardColors(containerColor=Color(0xFF073D2C))) {
                 Column(Modifier.fillMaxWidth().padding(28.dp)) {
                     Text("وقت‌یار",color=Color.White,fontSize=32.sp,fontWeight=FontWeight.Bold)
                     Spacer(Modifier.height(6.dp))
@@ -119,7 +124,10 @@ fun NativeApp(context: Context) {
     Scaffold(
         containerColor=Pale,
         topBar={
-            Surface(color=Forest) {
+            Surface(color=Color.Transparent,
+                modifier=Modifier.background(
+                    Brush.linearGradient(listOf(Color(0xFF064A34),Forest,Color(0xFF13734F)))
+                )) {
                 Row(Modifier.fillMaxWidth().padding(start=17.dp,end=17.dp,top=19.dp,bottom=18.dp),
                     verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween){
                     Column {
@@ -193,7 +201,9 @@ private fun DashboardPanel(sessions:List<LocalSession>,clients:List<LocalClient>
 @Composable
 private fun MetricCard(label:String,value:String,modifier:Modifier,color:Color,textColor:Color){
     Card(modifier=modifier,shape=RoundedCornerShape(22.dp),
-        colors=CardDefaults.cardColors(containerColor=color)){
+        border=BorderStroke(1.dp,Color.White.copy(alpha=0.6f)),
+        elevation=CardDefaults.cardElevation(defaultElevation=8.dp),
+        colors=CardDefaults.cardColors(containerColor=color.copy(alpha=0.92f))){
         Column(Modifier.padding(18.dp)) {
             Text(label,color=textColor,fontSize=13.sp)
             Text(value,color=textColor,fontSize=32.sp,fontWeight=FontWeight.Bold)
@@ -204,7 +214,10 @@ private fun MetricCard(label:String,value:String,modifier:Modifier,color:Color,t
 @Composable
 fun SessionCard(s:LocalSession,name:String,onClick:(()->Unit)?) {
     Card(onClick=onClick?:{},enabled=onClick!=null,modifier=Modifier.fillMaxWidth(),
-        shape=RoundedCornerShape(17.dp),colors=CardDefaults.cardColors(containerColor=Color.White)){
+        shape=RoundedCornerShape(17.dp),
+        border=BorderStroke(1.dp,Color(0xFFCBEBDA)),
+        elevation=CardDefaults.cardElevation(defaultElevation=4.dp),
+        colors=CardDefaults.cardColors(containerColor=Color.White.copy(alpha=0.88f))){
         Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
                 Text(name,fontWeight=FontWeight.Bold,fontSize=16.sp,color=Forest)

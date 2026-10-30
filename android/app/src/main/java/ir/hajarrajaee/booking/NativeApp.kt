@@ -127,7 +127,7 @@ fun NativeApp(context: Context) {
                         Text(Jalali.label(Jalali.today())+" • "+clock.toString(),fontSize=13.sp,color=Color(0xFFC5EAD0))
                     }
                     Surface(color=Color(0xFF21563A),shape=RoundedCornerShape(16.dp)) {
-                        Text("نسخه ۱.۲ آزمایشی",color=Color.White,fontSize=12.sp,
+                        Text("نسخه ۱.۳ آزمایشی",color=Color.White,fontSize=12.sp,
                             modifier=Modifier.padding(horizontal=12.dp,vertical=9.dp))
                     }
                 }
@@ -242,7 +242,7 @@ private fun MorePanel(context:Context,onLogout:()->Unit,onOpenOnline:()->Unit,on
         Card(shape=RoundedCornerShape(20.dp)) {
             Column(Modifier.padding(15.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
                 Text("رزرو آنلاین مشتری",fontWeight=FontWeight.Bold)
-                Text("پنل آنلاین فقط پس از نصب Backend روی hajarrajaee.ir قابل استفاده است؛ نوبت‌های محلی در حال حاضر خودکار با سایت همگام نمی‌شوند.",
+                Text("پس از نصب Backend، اطلاعات نوبت‌ها از بخش «همگام‌سازی با سایت» به سرور ارسال و دریافت می‌شود. اطلاعات خصوصی شرح حال فقط روی گوشی می‌ماند.",
                     fontSize=13.sp,color=Slate)
                 OutlinedButton(onClick=onOpenOnline){Text("ورود به پنل آنلاین (آزمایشی)")}
             }

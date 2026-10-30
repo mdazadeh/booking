@@ -56,7 +56,7 @@ class MainActivity : ComponentActivity() {
 
 private fun jalali(date: String): String = try {
     val d = LocalDate.parse(date.take(10))
-    val p = PersianCalendar()
+    val p = PersianCalendar(android.icu.util.TimeZone.getTimeZone("Asia/Tehran"))
     p.timeInMillis = d.atStartOfDay(tehran).toInstant().toEpochMilli()
     p.get(Calendar.YEAR).toString() + "/" +
         (p.get(Calendar.MONTH)+1).toString().padStart(2,'0') + "/" +
@@ -263,8 +263,15 @@ fun BookingScreen(context: Context) {
                                 fontSize = 13.sp, color = muted)
                             OutlinedTextField(manualName, { manualName = it }, label = { Text("نام مراجع") },
                                 modifier = Modifier.fillMaxWidth())
-                            OutlinedTextField(manualDate, { manualDate = it }, label = { Text("YYYY-MM-DD") },
-                                modifier = Modifier.fillMaxWidth())
+                            Text("تاریخ شمسی: " + jalali(manualDate), fontWeight = FontWeight.Bold, color = dark)
+                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                                for (offset in 0..30) {
+                                    val iso = LocalDate.now(tehran).plusDays(offset.toLong()).toString()
+                                    FilterChip(selected = manualDate == iso, onClick = { manualDate = iso },
+                                        label = { Text(jalali(iso)) })
+                                }
+                            }
                             OutlinedTextField(manualTime, { manualTime = it }, label = { Text("HH:mm") },
                                 modifier = Modifier.fillMaxWidth())
                             Button(onClick = {

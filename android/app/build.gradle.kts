@@ -10,9 +10,14 @@ android {
         applicationId = "ir.hajarrajaee.booking"
         minSdk = 26
         targetSdk = 35
-        versionCode = 11
-        versionName = "1.1.0-dev"
+        versionCode = 12
+        versionName = "1.2.0-beta1"
         buildConfigField("String", "API_BASE_URL", "\"https://hajarrajaee.ir/api/v1\"")
+    }
+    buildTypes {
+        getByName("debug") {
+            applicationIdSuffix = ".beta"
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

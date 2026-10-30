@@ -1,38 +1,26 @@
-# VaghYar | وقت‌یار — Booking v1.1 development MVP
+# وقت‌یار — Hajar Rajaee Booking
 
-A native Android manager (Kotlin + Jetpack Compose), private customer booking links opened only in a browser, and a PHP/MySQL booking API designed for Linux shared hosting. **No customer app installation and no VPS.**
+Android **Native** (Kotlin / Jetpack Compose) manager with Persian Jalali month/week/day calendar, local client profiles, personal history and session notes, exact-minute appointments and recurring scheduling (daily / weekly / biweekly / Persian monthly / monthly week+weekday / custom dates). Includes session edits, future-series edits/deletions and overlap checks using local SQLite transactions.
 
-## Structure
+## Test APK
+1. **Actions → Build Native Android APK** → latest successful run → Artifact **booking-android-debug-apk**.
+2. Unzip and install the APK on the POCO F4.
+3. Log in using the username and password supplied privately by the project owner. The source contains only a PBKDF2 password verifier, **not the plaintext password**.
+4. The new test APK uses application ID suffix .beta, allowing it to coexist with the old prototype. In **More**, change the password.
+5. Create a client first, then an appointment. See Jalali **Calendar**, **Clients**, **Appointments** and **More** tabs.
 
-- android/ — Android Studio project; GitHub Actions builds a debug APK.
-- server/public/ — private booking site, tracking page and REST API.
-- server/sql/schema.sql — initial InnoDB database schema.
-- server/app/config.example.php — template; live secrets are never committed.
-- docs/DEPLOYMENT.md — setup and security notes.
+## Architecture
+- android/ — Native Android manager: offline local CRUD via SQLiteOpenHelper, Persian ICU conversion, calendar, clients, notes and schedule recurrence.
+- server/ — PHP 8.3 and MySQL private invitation booking API with manual manager approval for customers, intended for Linux shared hosting.
+- docs/DEPLOYMENT.md — server deployment instructions.
 
-## Download Android APK through GitHub
+**No VPS, no client-side installation:** customers would only open private links in their browsers after the server is deployed.
 
-1. Select Actions > Build Native Android APK.
-2. Use Run workflow or push an Android file change to main.
-3. After success, download the booking-android-debug-apk artifact.
-4. Extract and install app-debug.apk on POCO F4.
+## IMPORTANT: beta limitations
+- The local Android database and the PHP server database **do not synchronize** yet. The **Online** page is a separate experimental remote manager and requires real hosting configuration.
+- The local database is not fully encrypted, does not yet have reliable backup/restore, notifications or exact alarms. Do not enter actual confidential clinical information in this beta.
+- The baked-in password verifier is for evaluation only; embedded authentication alone is not production-grade security.
+- Recurrence is materialized as a finite series of up to 104 occurrences and edited per occurrence or remaining future group. Arbitrarily selected dates are available.
+- APK is a debug test artifact. Real-world deployment requires security, device, storage, timezone, and acceptance testing, as well as production signing.
 
-This produces a DEBUG/TEST build, not a signed production release.
-
-## Approved behavior
-
-- Manager generates a unique private booking invitation.
-- Customer chooses Persian-calendar date and available time in a browser.
-- Request remains pending; the manager explicitly approves or rejects it.
-- Pending requests hold capacity temporarily (max 12h, ending 2h before appointment).
-- Server serializes concurrent booking changes via MySQL InnoDB row locks.
-- Customer checks result through a separate secret tracking link.
-- SMS integration is deferred.
-
-## Current scope
-
-Implemented in code: login, share invitation, pending request review, approve/reject, simple manual booking, availability endpoint, tracking page and basic rate limiting.
-
-Still to build: full Jalali native calendar editor, recurrence, client records, case notes, exact alarms, offline Room sync, advanced UX, signed production APK, and production security/hosting verification. **No backend has been deployed to hajarrajaee.ir.** Do not store real sensitive records until review and testing are completed.
-
-See docs/DEPLOYMENT.md before any deployment.
+The project deliberately does not modify the customer-facing production website.

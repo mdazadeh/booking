@@ -46,7 +46,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 MaterialTheme(colorScheme = lightColorScheme(primary = green, background = bg)) {
-                    BookingScreen(this)
+                    NativeApp(this)
                 }
             }
         }

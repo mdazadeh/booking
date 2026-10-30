@@ -1,26 +1,41 @@
-# وقت‌یار — Hajar Rajaee Booking
+# وقت‌یار — VaghYar Booking (v1.3 Beta)
 
-Android **Native** (Kotlin / Jetpack Compose) manager with Persian Jalali month/week/day calendar, local client profiles, personal history and session notes, exact-minute appointments and recurring scheduling (daily / weekly / biweekly / Persian monthly / monthly week+weekday / custom dates). Includes session edits, future-series edits/deletions and overlap checks using local SQLite transactions.
+Native Android manager written in Kotlin + Jetpack Compose, with customer appointments booked through private browser links hosted on Linux shared hosting (PHP + MySQL/InnoDB). **Customers do not install anything and no VPS is needed.**
 
-## Test APK
-1. **Actions → Build Native Android APK** → latest successful run → Artifact **booking-android-debug-apk**.
-2. Unzip and install the APK on the POCO F4.
-3. Log in using the username and password supplied privately by the project owner. The source contains only a PBKDF2 password verifier, **not the plaintext password**.
-4. The new test APK uses application ID suffix .beta, allowing it to coexist with the old prototype. In **More**, change the password.
-5. Create a client first, then an appointment. See Jalali **Calendar**, **Clients**, **Appointments** and **More** tabs.
+## Functional beta components
 
-## Architecture
-- android/ — Native Android manager: offline local CRUD via SQLiteOpenHelper, Persian ICU conversion, calendar, clients, notes and schedule recurrence.
-- server/ — PHP 8.3 and MySQL private invitation booking API with manual manager approval for customers, intended for Linux shared hosting.
-- docs/DEPLOYMENT.md — server deployment instructions.
+- Persian (Jalali) month/week/day calendar, Tehran timezone and minute-precision scheduling.
+- Local client profiles, history, per-session notes; recurring appointment series with edit/delete.
+- Appointment notifications using AlarmManager (exact where permission granted, otherwise best-effort inexact), reboot re-scheduling and configurable lead time.
+- Explainable local recommendations of free slots; requires server verification when synced.
+- Android Keystore AES-GCM encryption of local personal text fields (not full database encryption).
+- Portable AES-256-GCM encrypted backup with independent passphrase, restore via Android file picker.
+- **Schedule-only sync**: push local appointments and receive customer-approved server appointments using server-side day locks, idempotency keys and conflict reporting. Notes and case histories remain local and are **not** synced.
+- WorkManager best-effort periodic sync; 15-minute cadence is not a real-time guarantee.
+- Emerald glass-inspired launcher icon, gradient header and translucent cards.
 
-**No VPS, no client-side installation:** customers would only open private links in their browsers after the server is deployed.
+## GitHub downloads
 
-## IMPORTANT: beta limitations
-- The local Android database and the PHP server database **do not synchronize** yet. The **Online** page is a separate experimental remote manager and requires real hosting configuration.
-- The local database is not fully encrypted, does not yet have reliable backup/restore, notifications or exact alarms. Do not enter actual confidential clinical information in this beta.
-- The baked-in password verifier is for evaluation only; embedded authentication alone is not production-grade security.
-- Recurrence is materialized as a finite series of up to 104 occurrences and edited per occurrence or remaining future group. Arbitrarily selected dates are available.
-- APK is a debug test artifact. Real-world deployment requires security, device, storage, timezone, and acceptance testing, as well as production signing.
+**Actions → Build Native Android APK**: download the artifact named `booking-android-debug-apk` from the latest **successful** Android run. Extract `app-debug.apk`. This is a debug APK, not a production-signed release.
 
-The project deliberately does not modify the customer-facing production website.
+**Actions → Package Shared Hosting**: download `booking-shared-hosting-zip` and extract the nested hosting ZIP. It contains server app/public/sql and the installer guide, without real credentials.
+
+## First-run use
+
+1. Install the current beta APK; enter the local test credentials supplied separately by the project owner.
+2. Change local password from More.
+3. Create a client and a session; test recurrence, notes, smart slots and reminders.
+4. Export and verify a password-protected backup before using restore.
+5. Provision hosting following [HOSTING-SETUP.md](docs/HOSTING-SETUP.md). Configure a dedicated document root and MySQL database.
+6. Create the **server** admin account with PHP password_hash on the server, then connect from Android More → Server sync.
+7. Use the separate legacy online panel for private invitation links and request approvals until it is integrated into the new native navigation.
+
+## Safety and scope
+
+**Development beta only.** No unattended server deployment or POCO F4 physical verification has been performed. Debug CI signatures can change; the v1.3 beta uses a distinct package suffix to coexist with older debug APKs, but therefore does **not** automatically import prior beta app data. Do not uninstall prior app versions if they contain records without a verified backup.
+
+Do not store real confidential clinical notes until device, security and restore QA are completed. Scheduling metadata is not fully encrypted. Automatic sync requires a reachable, properly configured HTTPS backend; offline entries are provisional until server accepts them. SMS intentionally deferred.
+
+- [Shared-hosting instructions](docs/HOSTING-SETUP.md)
+- [POCO F4 device QA checklist](docs/POCO-F4-QA.md)
+- [PHP hosting setup / migrations](server/sql/)

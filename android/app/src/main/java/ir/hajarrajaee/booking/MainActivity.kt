@@ -45,7 +45,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                MaterialTheme(colorScheme = lightColorScheme(primary = green, background = bg)) {
+                MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF0BA77C), background = Color(0xFFF7FAF9)), typography=VaghTypography) {
                     NativeApp(this)
                 }
             }
@@ -63,7 +63,7 @@ private fun jalali(date: String): String = try {
 } catch (_: Exception) { date }
 
 private fun pretty(value: String): String =
-    if (value.length >= 16) jalali(value) + " | " + value.substring(11,16) else value
+    (if (value.length >= 16) jalali(value) + " | " + value.substring(11,16) else value).faDigits()
 
 private suspend fun request(method: String, endpoint: String, token: String = "", body: JSONObject? = null): JSONObject =
     withContext(Dispatchers.IO) {
@@ -216,15 +216,13 @@ fun BookingScreen(context: Context) {
                             Text("مشتری نیازی به نصب اپلیکیشن ندارد.", color = muted)
                             OutlinedTextField(name, { name = it }, label = { Text("نام مراجع") },
                                 modifier = Modifier.fillMaxWidth())
-                            OutlinedTextField(phone, { phone = it }, label = { Text("شماره تماس (اختیاری)") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                                modifier = Modifier.fillMaxWidth())
+                            PhoneNumberField(phone, { phone = it }, "شماره تماس (اختیاری)")
                             Button(onClick = {
                                 scope.launch {
                                     busy = true
                                     try {
                                         val result = request("POST", "/admin/invitations", token,
-                                            JSONObject().put("name", name).put("phone", phone))
+                                            JSONObject().put("name", name).put("phone", canonicalPhone(phone)))
                                         inviteUrl = result.getString("url"); error = ""
                                     } catch(e: Exception) { error = e.message ?: "خطا" }
                                     busy = false

@@ -55,8 +55,8 @@ fun ClientsPanel(
                         modifier=Modifier.fillMaxWidth()){
                         Column(Modifier.padding(16.dp)){
                             Text(c.name,fontWeight=FontWeight.Bold,fontSize=17.sp,color=Forest)
-                            if(c.phone.isNotBlank())Text(c.phone,fontSize=13.sp,color=Slate)
-                            Text(sessions.count{it.clientId==c.id}.toString()+" جلسه ثبت‌شده",
+                            if(c.phone.isNotBlank())Text(c.phone.faDigits(),fontSize=13.sp,color=Slate)
+                            Text(sessions.count{it.clientId==c.id}.toString().faDigits()+" جلسه ثبت‌شده",
                                 fontSize=12.sp,color=Green)
                         }
                     }
@@ -79,7 +79,7 @@ fun ClientsPanel(
                             verticalArrangement=Arrangement.spacedBy(8.dp)){
                             Text(selected.name,fontSize=22.sp,fontWeight=FontWeight.Bold,
                                 color=androidx.compose.ui.graphics.Color.White)
-                            Text(if(selected.phone.isBlank())"شماره تماس ثبت نشده" else selected.phone,
+                            Text(if(selected.phone.isBlank())"شماره تماس ثبت نشده" else selected.phone.faDigits(),
                                 color=androidx.compose.ui.graphics.Color(0xFFD0EBD7))
                             Text("شرح حال اولیه",fontWeight=FontWeight.Bold,color=androidx.compose.ui.graphics.Color.White)
                             Text(if(selected.history.isBlank())"شرح حالی ثبت نشده است." else selected.history,
@@ -147,8 +147,7 @@ fun ClientsPanel(
                     verticalArrangement=Arrangement.spacedBy(9.dp)){
                     OutlinedTextField(name,{name=it},label={Text("نام و نام خانوادگی *")},
                         modifier=Modifier.fillMaxWidth(),singleLine=true)
-                    OutlinedTextField(phone,{phone=it},label={Text("شماره تماس")},
-                        modifier=Modifier.fillMaxWidth(),singleLine=true)
+                    PhoneNumberField(phone,{phone=it})
                     OutlinedTextField(summary,{summary=it},label={Text("شرح حال و اطلاعات اولیه")},
                         modifier=Modifier.fillMaxWidth(),minLines=4,maxLines=7)
                     if(formError.isNotBlank())Text(formError,color=androidx.compose.ui.graphics.Color(0xFFAD4335))
@@ -157,7 +156,7 @@ fun ClientsPanel(
             confirmButton={
                 Button(onClick={
                     try{
-                        selectedId=store.saveClient(editId,name,phone,summary)
+                        selectedId=store.saveClient(editId,name,canonicalPhone(phone),summary)
                         showForm=false;formError="";onChange()
                     }catch(e:Exception){formError=e.message?:"خطا در ذخیره"}
                 },enabled=name.isNotBlank()){Text("ذخیره پرونده")}

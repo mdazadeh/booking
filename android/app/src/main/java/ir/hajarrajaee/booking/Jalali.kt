@@ -42,15 +42,15 @@ object Jalali {
     }
     fun label(d:LocalDate):String {
         val j=jalali(d)
-        return j.day.toString()+" "+months[j.month-1]+" "+j.year
+        return (j.day.toString()+" "+months[j.month-1]+" "+j.year).faDigits()
     }
     fun monthLabel(d:LocalDate):String {
-        val j=jalali(d);return months[j.month-1]+" "+j.year
+        val j=jalali(d);return (months[j.month-1]+" "+j.year).faDigits()
     }
     fun time(millis:Long):LocalDateTime=Instant.ofEpochMilli(millis).atZone(zone).toLocalDateTime()
     fun millis(d:LocalDate,t:LocalTime):Long=d.atTime(t).atZone(zone).toInstant().toEpochMilli()
     fun format(millis:Long):String {
-        val d=time(millis);return label(d.toLocalDate())+" | "+d.toLocalTime().toString()
+        val d=time(millis);return label(d.toLocalDate())+" | "+d.toLocalTime().toString().faDigits()
     }
 }
 

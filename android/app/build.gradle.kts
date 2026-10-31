@@ -10,13 +10,13 @@ android {
         applicationId = "ir.hajarrajaee.booking"
         minSdk = 26
         targetSdk = 35
-        versionCode = 14
-        versionName = "1.3.1-beta14"
+        versionCode = 15
+        versionName = "1.4.0-beta15"
         buildConfigField("String", "API_BASE_URL", "\"https://hajarrajaee.ir/api/v1\"")
     }
     buildTypes {
         getByName("debug") {
-            applicationIdSuffix = ".beta14"
+            applicationIdSuffix = ".beta15"
         }
     }
     compileOptions {
@@ -33,6 +33,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.work:work-runtime-ktx:2.10.2")
     debugImplementation("androidx.compose.ui:ui-tooling")

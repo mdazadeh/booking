@@ -65,7 +65,7 @@ object SyncClient {
                 var uploaded=0
                 val conflicts=mutableListOf<String>()
                 // Deletion queue must be drained before import, otherwise deleted clients reappear.
-                db.queuedDeletions().forEach { deletion ->
+                db.queuedDeletions().filter{!it.done}.forEach { deletion ->
                     val body=JSONObject()
                         .put("action","cancel")
                         .put("remote_id",deletion.remoteId)

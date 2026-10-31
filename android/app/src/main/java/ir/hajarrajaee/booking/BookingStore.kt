@@ -66,7 +66,7 @@ class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.
         db.execSQL("CREATE INDEX note_client ON notes(client_id,created_at)")
         db.execSQL("CREATE TABLE IF NOT EXISTS session_progress(session_id INTEGER PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,progress TEXT NOT NULL DEFAULT 'scheduled')")
         db.execSQL("""CREATE TABLE IF NOT EXISTS pending_remote_deletions(
-            remote_id INTEGER PRIMARY KEY,sync_key TEXT NOT NULL,remote_version INTEGER NOT NULL)""")
+            remote_id INTEGER PRIMARY KEY,sync_key TEXT NOT NULL,remote_version INTEGER NOT NULL,done INTEGER NOT NULL DEFAULT 0)""")
     }
     override fun onUpgrade(db:SQLiteDatabase,old:Int,new:Int) {
         if(old<2){
@@ -80,7 +80,7 @@ class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.
         }
         if(old<3)db.execSQL("CREATE TABLE IF NOT EXISTS session_progress(session_id INTEGER PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,progress TEXT NOT NULL DEFAULT 'scheduled')")
         if(old<4)db.execSQL("""CREATE TABLE IF NOT EXISTS pending_remote_deletions(
-            remote_id INTEGER PRIMARY KEY,sync_key TEXT NOT NULL,remote_version INTEGER NOT NULL)""")
+            remote_id INTEGER PRIMARY KEY,sync_key TEXT NOT NULL,remote_version INTEGER NOT NULL,done INTEGER NOT NULL DEFAULT 0)""")
     }
     fun clients():List<LocalClient>{
         val out=mutableListOf<LocalClient>()
@@ -213,17 +213,17 @@ class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.
         else writableDatabase.update("sessions",ContentValues().apply{put("status","cancelled");put("dirty",1)},
                 "id=?",arrayOf(session.id.toString()))
     }
-    data class PendingDeletion(val remoteId:Long,val key:String,val version:Int)
+    data class PendingDeletion(val remoteId:Long,val key:String,val version:Int,val done:Boolean)
     fun queuedDeletions():List<PendingDeletion>{
         val result=mutableListOf<PendingDeletion>()
         readableDatabase.rawQuery(
-            "SELECT remote_id,sync_key,remote_version FROM pending_remote_deletions",null).use{c->
-            while(c.moveToNext())result.add(PendingDeletion(c.getLong(0),c.getString(1),c.getInt(2)))
+            "SELECT remote_id,sync_key,remote_version,done FROM pending_remote_deletions",null).use{c->
+            while(c.moveToNext())result.add(PendingDeletion(c.getLong(0),c.getString(1),c.getInt(2),c.getInt(3)!=0))
         }
         return result
     }
     fun acknowledgeDeletion(remoteId:Long){
-        writableDatabase.delete("pending_remote_deletions","remote_id=?",arrayOf(remoteId.toString()))
+        writableDatabase.execSQL("UPDATE pending_remote_deletions SET done=1 WHERE remote_id=?",arrayOf(remoteId))
     }
     /** Atomic cascade. Remote cancellations survive offline and are sent later. */
     fun deleteClientCascade(clientId:Long):Int{
@@ -236,7 +236,7 @@ class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.
             val rows=sessions().filter{it.clientId==clientId}
             rows.filter{it.remoteId!=null && it.status=="approved"}.forEach{session->
                 db.execSQL(
-                    "INSERT OR REPLACE INTO pending_remote_deletions(remote_id,sync_key,remote_version) VALUES(?,?,?)",
+                    "INSERT OR REPLACE INTO pending_remote_deletions(remote_id,sync_key,remote_version,done) VALUES(?,?,?,0)",
                     arrayOf(session.remoteId!!,session.syncKey,session.remoteVersion))
             }
             db.delete("notes","client_id=?",arrayOf(clientId.toString()))

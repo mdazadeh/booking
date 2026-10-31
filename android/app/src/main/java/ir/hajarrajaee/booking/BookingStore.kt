@@ -13,10 +13,11 @@ data class LocalNote(val id:Long,val clientId:Long,val sessionId:Long?,val body:
 data class LocalSession(
     val id:Long,val clientId:Long,val startMillis:Long,val minutes:Int,
     val status:String,val series:String?,val topic:String,
-    val syncKey:String="",val remoteId:Long?=null,val remoteVersion:Int=0,val dirty:Boolean=true
+    val syncKey:String="",val remoteId:Long?=null,val remoteVersion:Int=0,val dirty:Boolean=true,
+    val progress:String="scheduled"
 )
 
-class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.db",null,2) {
+class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.db",null,3) {
     override fun onOpen(db:SQLiteDatabase) {
         super.onOpen(db)
         db.execSQL("CREATE TABLE IF NOT EXISTS security_meta (id INTEGER PRIMARY KEY, done INTEGER NOT NULL)")
@@ -63,6 +64,7 @@ class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.
         db.execSQL("CREATE INDEX session_client ON sessions(client_id)")
         db.execSQL("CREATE TABLE notes(id INTEGER PRIMARY KEY AUTOINCREMENT,client_id INTEGER NOT NULL REFERENCES clients(id),session_id INTEGER REFERENCES sessions(id) ON DELETE SET NULL,body TEXT NOT NULL,created_at INTEGER NOT NULL)")
         db.execSQL("CREATE INDEX note_client ON notes(client_id,created_at)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS session_progress(session_id INTEGER PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,progress TEXT NOT NULL DEFAULT 'scheduled')")
     }
     override fun onUpgrade(db:SQLiteDatabase,old:Int,new:Int) {
         if(old<2){
@@ -74,6 +76,7 @@ class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.
             db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_local_remote_id ON sessions(remote_id)")
             db.execSQL("UPDATE sessions SET sync_key=lower(hex(randomblob(16))) WHERE sync_key IS NULL")
         }
+        if(old<3)db.execSQL("CREATE TABLE IF NOT EXISTS session_progress(session_id INTEGER PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,progress TEXT NOT NULL DEFAULT 'scheduled')")
     }
     fun clients():List<LocalClient>{
         val out=mutableListOf<LocalClient>()
@@ -88,7 +91,12 @@ class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.
             while(c.moveToNext())out.add(LocalSession(c.getLong(0),c.getLong(1),c.getLong(2),c.getInt(3),c.getString(4),c.getString(5),FieldCrypto.decrypt(c.getString(6)),
                 c.getString(7) ?: "",if(c.isNull(8))null else c.getLong(8),c.getInt(9),c.getInt(10)!=0))
         }
-        return out
+        if(out.isEmpty())return out
+        val progress=mutableMapOf<Long,String>()
+        readableDatabase.rawQuery("SELECT session_id,progress FROM session_progress",null).use { c->
+            while(c.moveToNext())progress[c.getLong(0)]=c.getString(1)
+        }
+        return out.map { it.copy(progress=progress[it.id] ?: "scheduled") }
     }
     fun notes(clientId:Long):List<LocalNote>{
         val out=mutableListOf<LocalNote>()
@@ -123,14 +131,21 @@ class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.
     }
     fun addSessions(clientId:Long,date:LocalDate,time:LocalTime,minutes:Int,repeat:Repeat,count:Int,
                     custom:Set<LocalDate>,topic:String):Int {
+        val db=writableDatabase
+        db.beginTransaction()
+        return try {
+            val total=insertSessions(db,clientId,date,time,minutes,repeat,count,custom,topic)
+            db.setTransactionSuccessful()
+            total
+        }finally{db.endTransaction()}
+    }
+    private fun insertSessions(db:SQLiteDatabase,clientId:Long,date:LocalDate,time:LocalTime,
+        minutes:Int,repeat:Repeat,count:Int,custom:Set<LocalDate>,topic:String):Int {
         require(minutes in 5..480 && topic.length<=1000)
         val dates=recurrenceDates(date,repeat,count,custom)
         require(dates.isNotEmpty())
         val series=if(dates.size>1)UUID.randomUUID().toString() else null
-        val db=writableDatabase
-        db.beginTransaction()
-        try {
-            for(day in dates){
+        for(day in dates){
                 val start=Jalali.millis(day,time)
                 if(conflict(db,start,minutes,emptySet()))throw IllegalArgumentException("تداخل در "+Jalali.label(day))
                 val v=ContentValues().apply{
@@ -139,9 +154,7 @@ class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.
                     put("sync_key",UUID.randomUUID().toString());put("dirty",1)
                 }
                 db.insertOrThrow("sessions",null,v)
-            }
-            db.setTransactionSuccessful()
-        }finally{db.endTransaction()}
+        }
         return dates.size
     }
     fun editSession(original:LocalSession,newStart:Long,newMinutes:Int,allFuture:Boolean){
@@ -165,6 +178,28 @@ class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.
                 db.update("sessions",v,"id=?",arrayOf(item.id.toString()))
             }
             db.setTransactionSuccessful()
+        }finally{db.endTransaction()}
+    }
+    /** Attendance belongs to this device only; never map it to server appointment status. */
+    fun setProgress(sessionId:Long,progress:String) {
+        require(progress in setOf("scheduled","arrived","completed","no_show"))
+        require(readableDatabase.rawQuery("SELECT id FROM sessions WHERE id=?",arrayOf(sessionId.toString()))
+            .use { it.moveToFirst() }){"نوبت یافت نشد."}
+        writableDatabase.execSQL(
+            "INSERT OR REPLACE INTO session_progress(session_id,progress) VALUES(?,?)",
+            arrayOf(sessionId,progress))
+    }
+    fun createClientAndSessions(
+        name:String,phone:String,date:LocalDate,time:LocalTime,minutes:Int,
+        repeat:Repeat,count:Int,custom:Set<LocalDate>,topic:String
+    ):Int {
+        val db=writableDatabase
+        db.beginTransaction()
+        return try {
+            val clientId=saveClient(null,name,phone,"")
+            val total=insertSessions(db,clientId,date,time,minutes,repeat,count,custom,topic)
+            db.setTransactionSuccessful()
+            total
         }finally{db.endTransaction()}
     }
     fun deleteSession(session:LocalSession,allFuture:Boolean) {

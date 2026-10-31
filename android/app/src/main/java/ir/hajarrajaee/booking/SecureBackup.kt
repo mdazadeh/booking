@@ -42,7 +42,8 @@ object SecureBackup {
                 .put("start",s.startMillis).put("minutes",s.minutes).put("status",s.status)
                 .put("series",s.series?:JSONObject.NULL).put("topic",s.topic)
                 .put("sync_key",s.syncKey).put("remote_id",s.remoteId?:JSONObject.NULL)
-                .put("remote_version",s.remoteVersion).put("dirty",s.dirty))
+                .put("remote_version",s.remoteVersion).put("dirty",s.dirty)
+                .put("progress",s.progress))
         }
         val salt=ByteArray(16).also{SecureRandom().nextBytes(it)}
         val iv=ByteArray(12).also{SecureRandom().nextBytes(it)}
@@ -86,6 +87,7 @@ object SecureBackup {
         db.beginTransaction()
         try {
             db.delete("notes",null,null)
+            db.delete("session_progress",null,null)
             db.delete("sessions",null,null)
             db.delete("clients",null,null)
             for(i in 0 until clients.length()){
@@ -109,6 +111,10 @@ object SecureBackup {
                     put("remote_version",o.optInt("remote_version",0))
                     put("dirty",if(o.optBoolean("dirty",true))1 else 0)
                 })
+                val progress=o.optString("progress","scheduled")
+                require(progress in setOf("scheduled","arrived","completed","no_show"))
+                if(progress!="scheduled") db.execSQL("INSERT INTO session_progress(session_id,progress) VALUES(?,?)",
+                    arrayOf(o.getLong("id"),progress))
             }
             for(i in 0 until notes.length()){
                 val o=notes.getJSONObject(i)

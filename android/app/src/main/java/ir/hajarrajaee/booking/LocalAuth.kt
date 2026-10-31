@@ -12,8 +12,8 @@ import javax.crypto.spec.PBEKeySpec
  * actual clinical records. Production needs Keystore-backed encryption and stronger access policy.
  */
 object LocalAuth {
-    private const val DEFAULT_SALT="9d4e0d33569f6618726628624af713d9"
-    private const val DEFAULT_HASH="4e979e2dd006910111b4c9fb22cf101e3b01e51561d7f032dd2c460b6392822e"
+    private const val DEFAULT_SALT="d94ebcbc2c0bea35364fb32cab888173"
+    private const val DEFAULT_HASH="cb9e46ea38e9fb6e39a23db03b16ab264d6e0203381fb58cce9bb14e9e89791b"
     private fun bytes(hex:String)=hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
     private fun hex(bytes:ByteArray)=bytes.joinToString("") { "%02x".format(it) }
     private fun hash(password:String,salt:String):ByteArray {

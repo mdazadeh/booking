@@ -129,7 +129,7 @@ fun NativeApp(context: Context) {
             Button(onClick={online=false},modifier=Modifier.fillMaxWidth().padding(6.dp)){
                 Text("بازگشت به مدیریت محلی")
             }
-            Box(Modifier.weight(1f)) { BookingScreen(context) }
+            Box(Modifier.weight(1f)) { RequestsPanel(context,{refresh()}) }
         }
         return
     }
@@ -169,7 +169,7 @@ fun NativeApp(context: Context) {
                         Jalali.time(s.startMillis).toLocalTime(),s)},
                     onAdd={date,time->activeDay=date;openQuick(date,time)})
                 1->ClientsPanel(db,clients,sessions,{refresh()})
-                2->BookingScreen(context)
+                2->RequestsPanel(context,{refresh()})
                 else->MorePanel(context,onLogout={signedIn=false},onOpenOnline={currentPage=2},
                     onDataChanged={refresh()})
             }
@@ -270,6 +270,7 @@ private fun MorePanel(context:Context,onLogout:()->Unit,onOpenOnline:()->Unit,on
                 OutlinedButton(onClick=onOpenOnline){Text("مدیریت درخواست‌ها و لینک‌های رزرو")}
             }
         }
+        WorkingHoursSettings(context,onSaved=onDataChanged)
         ReminderControls(context)
         BackupControls(context,onRestored=onDataChanged)
         ServerControls(context,onDataChanged=onDataChanged)

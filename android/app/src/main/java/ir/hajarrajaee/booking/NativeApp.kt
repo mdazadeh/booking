@@ -273,6 +273,7 @@ private fun MorePanel(context:Context,onLogout:()->Unit,onOpenOnline:()->Unit,on
         WorkingHoursSettings(context,onSaved=onDataChanged)
         ReminderControls(context)
         BackupControls(context,onRestored=onDataChanged)
+        LocalResetControls(context,onReset=onDataChanged)
         ServerControls(context,onDataChanged=onDataChanged)
         Text("حفاظت فیلدهای شخصی با Android Keystore و بکاپ با رمز مجزا اضافه شده است. همگام‌سازی فعلاً فقط نوبت و نام/شماره تماس را پوشش می‌دهد؛ شرح حال و یادداشت‌ها روی گوشی می‌مانند. تا پایان تست امنیتی اطلاعات حساس واقعی ثبت نکنید.",
             fontSize=13.sp,color=Color(0xFF99522A))

@@ -11,6 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.PersonAddAlt
+import androidx.compose.material.icons.outlined.Search
 import java.time.Instant
 import java.time.ZoneId
 
@@ -33,6 +37,8 @@ fun ClientsPanel(
     var noteSession by remember{mutableStateOf<Long?>(null)}
     var noteRevision by remember{mutableIntStateOf(0)}
     var deleteNote by remember{mutableStateOf<LocalNote?>(null)}
+    var deleteClient by remember {mutableStateOf<LocalClient?>(null)}
+    var deletionError by remember {mutableStateOf("")}
     fun openEditor(client:LocalClient?) {
         editId=client?.id;name=client?.name?:"";phone=client?.phone?:""
         summary=client?.history?:"";formError="";showForm=true
@@ -42,7 +48,11 @@ fun ClientsPanel(
         if(selected==null){
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
                 Text("پرونده مراجعان",fontSize=22.sp,fontWeight=FontWeight.Bold,color=Forest)
-                Button(onClick={openEditor(null)}){Text("+ مراجع جدید")}
+                Button(onClick={openEditor(null)},shape=RoundedCornerShape(17.dp)){
+                    Icon(Icons.Outlined.PersonAddAlt,contentDescription=null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("مراجع جدید")
+                }
             }
             Spacer(Modifier.height(10.dp))
             OutlinedTextField(search,{search=it},modifier=Modifier.fillMaxWidth(),
@@ -67,7 +77,13 @@ fun ClientsPanel(
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
                 TextButton(onClick={selectedId=null;noteSession=null}){Text("بازگشت")}
                 Text("پرونده مراجع",fontWeight=FontWeight.Bold,fontSize=19.sp,color=Forest)
-                TextButton(onClick={openEditor(selected)}){Text("ویرایش")}
+                Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically){
+                    IconButton(onClick={deleteClient=selected;deletionError=""}){
+                        Icon(Icons.Outlined.DeleteOutline,contentDescription="حذف مراجع و نوبت‌ها",
+                            tint=androidx.compose.ui.graphics.Color(0xFFD35D76))
+                    }
+                    TextButton(onClick={openEditor(selected)}){Text("ویرایش")}
+                }
             }
             val clientSessions=sessions.filter{it.clientId==selected.id}.sortedByDescending{it.startMillis}
             val notes=remember(selected.id,noteRevision){store.notes(selected.id)}
@@ -139,6 +155,33 @@ fun ClientsPanel(
         }
     }
 
+    deleteClient?.let{target->
+        val count=sessions.count{it.clientId==target.id}
+        AlertDialog(
+            onDismissRequest={deleteClient=null},
+            title={Text("حذف مراجع و همه نوبت‌ها؟")},
+            text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)){
+                Text("پرونده «"+target.name+"»، "+count.toString().faDigits()+
+                    " نوبت و همه یادداشت‌هایش از گوشی حذف می‌شوند.")
+                Text("نوبت‌های همگام‌شده برای لغو روی سرور در صف قرار می‌گیرند. تا تکمیل همگام‌سازی، حذف در سایت نهایی نیست.",
+                    color=Slate)
+                Text("پیشنهاد: پیش از حذف از بخش «بیشتر» بکاپ بگیرید.",color=Slate)
+                if(deletionError.isNotBlank())Text(deletionError,
+                    color=androidx.compose.ui.graphics.Color(0xFFBE4461))
+            }},
+            confirmButton={Button(onClick={
+                try{
+                    store.deleteClientCascade(target.id)
+                    selectedId=null;deleteClient=null;noteSession=null;noteRevision++
+                    onChange()
+                }catch(e:Exception){deletionError=e.message?:"حذف انجام نشد."}
+            },colors=ButtonDefaults.buttonColors(
+                containerColor=androidx.compose.ui.graphics.Color(0xFFD35D76))){
+                Text("حذف پرونده و نوبت‌ها")
+            }},
+            dismissButton={TextButton(onClick={deleteClient=null}){Text("انصراف")}}
+        )
+    }
     if(showForm){
         AlertDialog(onDismissRequest={showForm=false},
             title={Text(if(editId==null)"افزودن مراجع" else "ویرایش پرونده")},

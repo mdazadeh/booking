@@ -48,7 +48,7 @@ fun ClientsPanel(
             OutlinedTextField(search,{search=it},modifier=Modifier.fillMaxWidth(),
                 label={Text("جست‌وجوی نام یا شماره تماس")},singleLine=true)
             Spacer(Modifier.height(12.dp))
-            val found=clients.filter {it.name.contains(search,true)||it.phone.contains(search,true)}
+            val found=clients.filter {it.name.contains(search,true)||it.phone.contains(search.asciiDigits(),true)}
             LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)){
                 items(found,key={it.id}){c->
                     Card(onClick={selectedId=c.id},shape=RoundedCornerShape(16.dp),

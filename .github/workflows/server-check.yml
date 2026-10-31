@@ -15,5 +15,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: PHP syntax validation
         run: find server -name '*.php' -type f -print0 | xargs -0 -n1 php -l
+      - name: Validate customer booking work-hours rules
+        run: php server/tests/test_work_hours.php
       - name: Check required files
         run: test -f server/sql/schema.sql && test -f server/app/config.example.php

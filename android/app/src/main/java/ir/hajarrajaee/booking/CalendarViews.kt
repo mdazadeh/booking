@@ -95,7 +95,7 @@ fun CalendarPanel(
     onAdd:(LocalDate,LocalTime?)->Unit
 ) {
     val context=androidx.compose.ui.platform.LocalContext.current
-    var mode by remember {mutableIntStateOf(0)}
+    var mode by remember {mutableIntStateOf(2)}
     val window=WorkingHours.forDate(context,selected)
     val all=sessions.filter{
         Jalali.time(it.startMillis).toLocalDate()==selected && it.status=="approved"
@@ -176,6 +176,15 @@ fun CalendarPanel(
         }
         if(mode==2 && window.enabled){
             DayTimeline(selected,all,clientNames,window,onAdd,onEdit)
+            val outside=all.filter{session->
+                val t=Jalali.time(session.startMillis).toLocalTime()
+                val minute=t.hour*60+t.minute
+                minute<window.open || minute>=window.close
+            }
+            if(outside.isNotEmpty()){
+                Text("نوبت‌های خارج از ساعات فعلی",fontWeight=FontWeight.Bold,color=Slate)
+                outside.forEach{s->TimelineEvent(s,clientNames[s.clientId]?:"مراجع"){onEdit(s)}}
+            }
         }else if(mode==2 && !window.enabled){
             Card(colors=CardDefaults.cardColors(containerColor=Color(0xFFFFF4E8))){
                 Text("این روز در برنامه کاری تعطیل است. ساعات کاری را از تنظیمات تغییر دهید.",

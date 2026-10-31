@@ -15,6 +15,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.EventAvailable
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -89,6 +92,56 @@ fun JalaliMonthPicker(
 }
 
 @Composable
+private fun CompactWeekStrip(
+    selected:LocalDate,
+    onSelect:(LocalDate)->Unit,
+    sessions:List<LocalSession>
+){
+    val start=selected.minusDays(Jalali.weekday(selected).toLong())
+    Column(verticalArrangement=Arrangement.spacedBy(8.dp)){
+        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,
+            horizontalArrangement=Arrangement.SpaceBetween){
+            Text("انتخاب روز",fontWeight=FontWeight.Bold,color=Forest,fontSize=15.sp)
+            Row(verticalAlignment=Alignment.CenterVertically){
+                IconButton(onClick={onSelect(selected.minusWeeks(1))}){
+                    Text("‹",fontSize=25.sp,color=Lilac)
+                }
+                IconButton(onClick={onSelect(selected.plusWeeks(1))}){
+                    Text("›",fontSize=25.sp,color=Lilac)
+                }
+            }
+        }
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(4.dp)){
+            (0..6).forEach { i->
+                val day=start.plusDays(i.toLong())
+                val active=day==selected
+                val count=sessions.count{s->
+                    s.status=="approved" && Jalali.time(s.startMillis).toLocalDate()==day
+                }
+                Surface(onClick={onSelect(day)},modifier=Modifier.weight(1f).height(78.dp),
+                    color=if(active)Green else if(i%2==0)Color(0xFFF5EDFE)
+                        else Color(0xFFF0FAF8),
+                    shape=RoundedCornerShape(17.dp)){
+                    Column(Modifier.fillMaxSize(),
+                        horizontalAlignment=Alignment.CenterHorizontally,
+                        verticalArrangement=Arrangement.Center){
+                        Text(Jalali.weekdays[i].take(2),fontSize=11.sp,
+                            color=if(active)Color.White else Slate)
+                        Text(Jalali.jalali(day).day.toString().faDigits(),
+                            fontSize=20.sp,fontWeight=FontWeight.Bold,
+                            color=if(active)Color.White else Forest)
+                        Spacer(Modifier.height(4.dp))
+                        Box(Modifier.size(5.dp).background(
+                            if(active)Color.White else if(count>0)Coral else Color.Transparent,
+                            RoundedCornerShape(3.dp)))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun CalendarPanel(
     selected:LocalDate,
     onSelect:(LocalDate)->Unit,
@@ -110,10 +163,34 @@ fun CalendarPanel(
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,
             horizontalArrangement=Arrangement.SpaceBetween){
             Column {
-                Text("تقویم نوبت‌ها",fontSize=24.sp,fontWeight=FontWeight.Bold,color=Forest)
+                Text("برنامه نوبت‌ها",fontSize=24.sp,fontWeight=FontWeight.Bold,color=Forest)
                 Text(Jalali.label(selected),color=Slate,fontSize=15.sp)
             }
-            TextButton(onClick={onSelect(Jalali.today())}){Text("امروز")}
+            FilledTonalButton(onClick={onSelect(Jalali.today())},
+                shape=RoundedCornerShape(15.dp),
+                colors=ButtonDefaults.filledTonalButtonColors(
+                    containerColor=Color(0xFFEDE4FB),contentColor=Lilac)){
+                Icon(Icons.Outlined.CalendarMonth,contentDescription=null,
+                    modifier=Modifier.size(17.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("امروز",fontWeight=FontWeight.Bold)
+            }
+        }
+        Surface(color=Color(0xFFF5EDFF),shape=RoundedCornerShape(18.dp)){
+            Row(Modifier.fillMaxWidth().padding(horizontal=15.dp,vertical=10.dp),
+                verticalAlignment=Alignment.CenterVertically,
+                horizontalArrangement=Arrangement.SpaceBetween){
+                Column {
+                    Text("برای امروز برنامه‌ریزی کن ✨",fontSize=15.sp,
+                        fontWeight=FontWeight.Bold,color=Forest)
+                    Text("نوبت‌های این روز: "+all.size.toString().faDigits(),
+                        fontSize=13.sp,color=Slate)
+                }
+                Surface(color=Color.White,shape=RoundedCornerShape(14.dp)){
+                    Icon(Icons.Outlined.EventAvailable,contentDescription=null,
+                        tint=Lilac,modifier=Modifier.padding(12.dp).size(24.dp))
+                }
+            }
         }
         SingleChoiceSegmentedButtonRow(modifier=Modifier.fillMaxWidth()){
             listOf("ماهانه","هفتگی","روزانه").forEachIndexed{i,label->
@@ -155,12 +232,7 @@ fun CalendarPanel(
                             }
                         }
                     }
-                    else-> Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,
-                        horizontalArrangement=Arrangement.SpaceBetween){
-                        IconButton(onClick={onSelect(selected.minusDays(1))}){Text("‹",fontSize=25.sp)}
-                        Text(Jalali.label(selected),fontWeight=FontWeight.Bold,color=Forest)
-                        IconButton(onClick={onSelect(selected.plusDays(1))}){Text("›",fontSize=25.sp)}
-                    }
+                    else->CompactWeekStrip(selected,onSelect,sessions)
                 }
             }
         }
@@ -173,8 +245,11 @@ fun CalendarPanel(
                     (if(window.enabled) (WorkingHours.clock(window.open)+" تا "+WorkingHours.clock(window.close)).faDigits()
                     else "روز تعطیل"),fontSize=12.sp,color=Slate)
             }
-            Button(onClick={onAdd(selected,null)},shape=RoundedCornerShape(13.dp)){
-                Text("＋ نوبت جدید")
+            Button(onClick={onAdd(selected,null)},shape=RoundedCornerShape(17.dp)){
+                Icon(Icons.Outlined.AddCircleOutline,contentDescription=null,
+                    modifier=Modifier.size(19.dp))
+                Spacer(Modifier.width(7.dp))
+                Text("نوبت جدید",fontWeight=FontWeight.Bold)
             }
         }
         if(mode==2 && window.enabled){
@@ -213,7 +288,7 @@ private fun TimelineEvent(s:LocalSession,name:String,onClick:()->Unit){
         else->"تأییدشده"
     }
     Surface(onClick=onClick,modifier=Modifier.fillMaxWidth(),shape=RoundedCornerShape(14.dp),
-        color=tint.copy(alpha=.12f),border=BorderStroke(1.dp,tint.copy(alpha=.31f))){
+        color=tint.copy(alpha=.10f),border=BorderStroke(1.dp,tint.copy(alpha=.28f))){
         Row(Modifier.fillMaxWidth().padding(11.dp),verticalAlignment=Alignment.CenterVertically,
             horizontalArrangement=Arrangement.spacedBy(9.dp)){
             Box(Modifier.width(4.dp).height(38.dp).background(tint,RoundedCornerShape(3.dp)))

@@ -14,14 +14,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.PendingActions
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,7 +35,7 @@ import kotlinx.coroutines.launch
 
 val Forest=Color(0xFF303B59)
 val Green=Color(0xFF13A892)
-val Pale=Color(0xFFFFFAFD)
+val Pale=Color(0xFFFDF9FC)
 val Slate=Color(0xFF70788C)
 val Lilac=Color(0xFF9074D3)
 val Coral=Color(0xFFEF6F90)
@@ -95,9 +97,20 @@ fun NativeApp(context: Context) {
                 elevation=CardDefaults.cardElevation(defaultElevation=16.dp),
                 colors=CardDefaults.cardColors(containerColor=Color(0xFF55437A))) {
                 Column(Modifier.fillMaxWidth().padding(28.dp)) {
-                    Text("💗 وقت‌یار",color=Color.White,fontSize=32.sp,fontWeight=FontWeight.Bold)
+                    Row(verticalAlignment=Alignment.CenterVertically,
+                        horizontalArrangement=Arrangement.spacedBy(14.dp)){
+                        Image(painter=painterResource(R.drawable.vaghyar_hourglass),
+                            contentDescription="لوگوی ساعت‌شنی وقت‌یار",
+                            modifier=Modifier.size(82.dp).clip(RoundedCornerShape(23.dp)),
+                            contentScale=ContentScale.Crop)
+                        Column {
+                            Text("وقت‌یار",color=Color.White,fontSize=30.sp,
+                                fontWeight=FontWeight.Bold)
+                            Text("تقویم و نوبت‌دهی آسان",color=Color(0xFFF7D9F7),
+                                fontSize=14.sp)
+                        }
+                    }
                     Spacer(Modifier.height(6.dp))
-                    Text("مدیریت نوبت‌ها • تقویم شمسی",color=Color(0xFFBEE6CD))
                     Spacer(Modifier.height(18.dp))
                     Text("ورود محلی مدیر",color=Color.White,fontSize=20.sp,fontWeight=FontWeight.Bold)
                     Spacer(Modifier.height(12.dp))
@@ -140,23 +153,24 @@ fun NativeApp(context: Context) {
     Scaffold(
         containerColor=Pale,
         topBar={
-            Surface(color=Color(0xFFF4ECFF),shadowElevation=1.dp) {
+            Surface(color=Color(0xFFF5EFFF),shadowElevation=1.dp) {
                 Row(Modifier.fillMaxWidth().padding(start=16.dp,end=16.dp,top=13.dp,bottom=13.dp),
                     verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(11.dp)){
-                    Surface(shape=RoundedCornerShape(20.dp),color=Color(0xFFFFDAE7),
-                        modifier=Modifier.size(55.dp)){
-                        Box(contentAlignment=Alignment.Center){
-                            Icon(Icons.Filled.Favorite,contentDescription="نشان وقت‌یار",
-                                tint=Coral,modifier=Modifier.size(29.dp))
-                        }
-                    }
+                    Image(painter=painterResource(R.drawable.vaghyar_hourglass),
+                        contentDescription="لوگوی ساعت‌شنی وقت‌یار",
+                        modifier=Modifier.size(58.dp).clip(RoundedCornerShape(19.dp)),
+                        contentScale=ContentScale.Crop)
                     Column(Modifier.weight(1f)) {
                         Text("وقت‌یار",color=Forest,fontSize=27.sp,fontWeight=FontWeight.Bold)
                         Text(Jalali.label(Jalali.today())+" · "+clock.toString().faDigits(),
                             fontSize=14.sp,color=Slate)
                     }
-                    Icon(Icons.Outlined.AutoAwesome,contentDescription="مشاوره کودک",
-                        tint=Lilac,modifier=Modifier.size(28.dp))
+                    Surface(shape=RoundedCornerShape(14.dp),
+                        color=Color.White.copy(alpha=.82f)){
+                        Icon(Icons.Outlined.NotificationsNone,
+                            contentDescription="یادآوری نوبت‌ها",
+                            tint=Lilac,modifier=Modifier.padding(9.dp).size(24.dp))
+                    }
                 }
             }
         },

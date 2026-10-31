@@ -20,6 +20,9 @@ import androidx.compose.ui.unit.sp
 import java.time.LocalDate
 import java.time.LocalTime
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.EventNote
+import androidx.compose.material.icons.outlined.Schedule
 
 /** Quick add/edit directly from Calendar. Uses existing local database without schema changes. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,13 +51,23 @@ fun QuickBookingSheet(
     var confirmDelete by remember{mutableStateOf(false)}
     var progress by remember(date,key){mutableStateOf(edit?.progress ?: "scheduled")}
     val currentClient=clients.firstOrNull{it.id==chosen}
-    ModalBottomSheet(onDismissRequest=onDismiss,containerColor=Color(0xFFFFFAFD),
+    ModalBottomSheet(onDismissRequest=onDismiss,containerColor=Color(0xFFFDF9FC),
         sheetState=rememberModalBottomSheetState(skipPartiallyExpanded=true)) {
         Column(Modifier.fillMaxWidth().heightIn(max=670.dp).verticalScroll(rememberScrollState())
             .padding(start=18.dp,end=18.dp,bottom=30.dp),
             verticalArrangement=Arrangement.spacedBy(10.dp)){
-            Text(if(edit==null)"ثبت سریع نوبت" else "ویرایش نوبت",fontSize=24.sp,
-                fontWeight=FontWeight.Bold,color=Forest)
+            Row(verticalAlignment=Alignment.CenterVertically,
+                horizontalArrangement=Arrangement.spacedBy(11.dp)){
+                Surface(shape=RoundedCornerShape(15.dp),color=Color(0xFFE7F9F3)){
+                    Icon(Icons.Outlined.EventNote,contentDescription=null,tint=Green,
+                        modifier=Modifier.padding(10.dp).size(26.dp))
+                }
+                Column {
+                    Text(if(edit==null)"نوبت جدید" else "ویرایش نوبت",fontSize=24.sp,
+                        fontWeight=FontWeight.Bold,color=Forest)
+                    Text("تاریخ، ساعت و نام مراجع را مشخص کنید",fontSize=13.sp,color=Slate)
+                }
+            }
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,
                 horizontalArrangement=Arrangement.SpaceBetween){
                 Text(Jalali.label(chosenDate),color=Slate,fontSize=16.sp)
@@ -92,7 +105,12 @@ fun QuickBookingSheet(
                     TextButton(onClick={newClient=true;chosen=null}){Text("＋ مراجع جدید")}
                 }
             } else Text("مراجع: "+(currentClient?.name?:"مراجع"),fontWeight=FontWeight.Bold,color=Forest)
-            Text("ساعت شروع",fontWeight=FontWeight.Bold,color=Forest)
+            Row(verticalAlignment=Alignment.CenterVertically,
+                horizontalArrangement=Arrangement.spacedBy(7.dp)){
+                Icon(Icons.Outlined.Schedule,contentDescription=null,tint=Lilac,
+                    modifier=Modifier.size(19.dp))
+                Text("ساعت شروع",fontWeight=FontWeight.Bold,color=Forest,fontSize=16.sp)
+            }
             val hours=if(window.enabled)(window.open until window.close step 30)
                 .map{WorkingHours.clock(it)} else emptyList()
             LazyRow(horizontalArrangement=Arrangement.spacedBy(6.dp)){
@@ -197,7 +215,7 @@ fun QuickBookingSheet(
                 }catch(e:Exception){error=e.message?:"ذخیره ناموفق بود."}
             },enabled=edit!=null || (if(newClient)name.isNotBlank() else chosen!=null),
                 modifier=Modifier.fillMaxWidth().height(53.dp),
-                shape=RoundedCornerShape(15.dp)){
+                shape=RoundedCornerShape(19.dp)){
                 Text(if(edit==null)"ثبت نوبت" else "ذخیره تغییرات",fontSize=16.sp)
             }
             if(edit!=null)OutlinedButton(onClick={confirmDelete=true},modifier=Modifier.fillMaxWidth()){

@@ -52,6 +52,12 @@ object SyncClient {
         require(secret.length>=32)
         preferences(context).edit().putString("encrypted_token",FieldCrypto.encrypt(secret)).apply()
     }
+    /** Shared encrypted server session for both sync and private online requests. */
+    suspend fun adminRequest(context:Context,method:String,path:String,body:JSONObject?=null):JSONObject{
+        require(path.startsWith("/admin/") && !path.contains(".."))
+        require(method=="GET" || method=="POST")
+        return call(method,path,token(context),body)
+    }
     suspend fun synchronize(context:Context):SyncReport=mutex.withLock {
         val auth=token(context)
         withContext(Dispatchers.IO) {

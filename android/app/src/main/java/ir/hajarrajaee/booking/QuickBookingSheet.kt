@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.LocalDate
 import java.time.LocalTime
+import androidx.compose.ui.platform.LocalContext
 
 /** Quick add/edit directly from Calendar. Uses existing local database without schema changes. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,7 +29,10 @@ fun QuickBookingSheet(
     date:LocalDate,initialTime:LocalTime?,edit:LocalSession?,
     onDismiss:()->Unit,onSaved:()->Unit
 ) {
+    val context=LocalContext.current
     val key=edit?.id
+    var chosenDate by remember(date,key){mutableStateOf(date)}
+    var showCalendar by remember(date,key){mutableStateOf(false)}
     var chosen by remember(date,key){mutableStateOf(edit?.clientId)}
     var search by remember(date,key){mutableStateOf("")}
     var newClient by remember(date,key){mutableStateOf(clients.isEmpty())}
@@ -42,6 +46,7 @@ fun QuickBookingSheet(
     var repeatOpen by remember(date,key){mutableStateOf(false)}
     var error by remember(date,key){mutableStateOf("")}
     var confirmDelete by remember{mutableStateOf(false)}
+    var progress by remember(date,key){mutableStateOf(edit?.progress ?: "scheduled")}
     val currentClient=clients.firstOrNull{it.id==chosen}
     ModalBottomSheet(onDismissRequest=onDismiss,containerColor=Color(0xFFF7FAF9),
         sheetState=rememberModalBottomSheetState(skipPartiallyExpanded=true)) {
@@ -50,7 +55,20 @@ fun QuickBookingSheet(
             verticalArrangement=Arrangement.spacedBy(10.dp)){
             Text(if(edit==null)"ثبت سریع نوبت" else "ویرایش نوبت",fontSize=22.sp,
                 fontWeight=FontWeight.Bold,color=Forest)
-            Text(Jalali.label(date),color=Slate,fontSize=16.sp)
+            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,
+                horizontalArrangement=Arrangement.SpaceBetween){
+                Text(Jalali.label(chosenDate),color=Slate,fontSize=16.sp)
+                TextButton(onClick={showCalendar=!showCalendar}){Text("تغییر تاریخ")}
+            }
+            if(showCalendar)Card(colors=CardDefaults.cardColors(containerColor=Color.White)){
+                Column(Modifier.padding(10.dp)){
+                    JalaliMonthPicker(chosenDate,{chosenDate=it;showCalendar=false})
+                }
+            }
+            val window=WorkingHours.forDate(context,chosenDate)
+            if(!window.enabled)Text("این روز در تنظیمات، تعطیل است.",color=Color(0xFFB1672C))
+            else Text(("ساعات کاری: "+WorkingHours.clock(window.open)+
+                " تا "+WorkingHours.clock(window.close)).faDigits(),fontSize=12.sp,color=Slate)
             if(edit==null) {
                 Text("مراجع",fontWeight=FontWeight.Bold,color=Forest)
                 if(newClient) {
@@ -75,12 +93,13 @@ fun QuickBookingSheet(
                 }
             } else Text("مراجع: "+(currentClient?.name?:"مراجع"),fontWeight=FontWeight.Bold,color=Forest)
             Text("ساعت شروع",fontWeight=FontWeight.Bold,color=Forest)
-            val hours=listOf("09:00","10:00","11:00","12:00","14:00","16:00","18:00")
+            val hours=if(window.enabled)(window.open until window.close step 30)
+                .map{WorkingHours.clock(it)} else emptyList()
             LazyRow(horizontalArrangement=Arrangement.spacedBy(6.dp)){
                 items(hours){value->
-                    val start=Jalali.millis(date,LocalTime.parse(value))
+                    val start=Jalali.millis(chosenDate,LocalTime.parse(value))
                     val length=(duration.toIntOrNull()?:60)*60000L
-                    val free=sessions.none{s->s.status=="approved" && s.id!=edit?.id &&
+                    val free=window.allows(LocalTime.parse(value),duration.toIntOrNull()?:60) && sessions.none{s->s.status=="approved" && s.id!=edit?.id &&
                         start<s.startMillis+s.minutes*60000L && start+length>s.startMillis}
                     FilterChip(selected=time==value,onClick={time=value},enabled=free || time==value,
                         label={Text(value.faDigits())})
@@ -95,6 +114,22 @@ fun QuickBookingSheet(
                 listOf(30,45,60,90).forEach{value->
                     FilterChip(selected=duration==value.toString(),onClick={duration=value.toString()},
                         label={Text(value.toString().faDigits()+" دقیقه",fontSize=11.sp)})
+                }
+            }
+            if(edit!=null){
+                Text("وضعیت مراجعه",fontWeight=FontWeight.Bold,color=Forest)
+                Column(verticalArrangement=Arrangement.spacedBy(3.dp)){
+                    listOf("scheduled" to "برنامه‌ریزی‌شده","arrived" to "حاضر شد",
+                        "completed" to "انجام شد","no_show" to "حضور نداشت").chunked(2).forEach{chunk->
+                        Row(horizontalArrangement=Arrangement.spacedBy(7.dp)){
+                            chunk.forEach{(code,label)->
+                                FilterChip(selected=progress==code,onClick={
+                                    try{store.setProgress(edit.id,code);progress=code;onSaved()}
+                                    catch(e:Exception){error=e.message?:"خطا در ذخیره وضعیت"}
+                                },label={Text(label,fontSize=11.sp)})
+                            }
+                        }
+                    }
                 }
             }
             if(edit==null){
@@ -122,15 +157,26 @@ fun QuickBookingSheet(
                     val start=LocalTime.parse(time)
                     val length=duration.toIntOrNull()?:0
                     require(length in 5..480){"مدت جلسه باید بین ۵ تا ۴۸۰ دقیقه باشد."}
+                    val dates=if(edit==null)recurrenceDates(chosenDate,repeat,
+                        if(repeat==Repeat.NONE)1 else (repeatCount.toIntOrNull()?:0),emptySet())
+                    else listOf(chosenDate)
+                    val moving=edit==null || Jalali.millis(chosenDate,start)!=edit.startMillis ||
+                        length!=edit.minutes
+                    if(moving) require(dates.all{WorkingHours.validate(context,it,start,length)}){
+                        "زمان انتخابی خارج از ساعات کاری یا زمان استراحت است."
+                    }
                     if(edit==null){
                         val count=if(repeat==Repeat.NONE)1 else (repeatCount.toIntOrNull()?:0)
                         require(count in 1..104){"تعداد جلسات باید بین ۱ تا ۱۰۴ باشد."}
-                        val clientId=if(newClient){
+                        if(newClient){
                             require(name.trim().isNotEmpty()){"نام مراجع را وارد کنید."}
-                            store.saveClient(null,name,canonicalPhone(phone),"")
-                        }else chosen?:throw IllegalArgumentException("مراجع را انتخاب کنید.")
-                        store.addSessions(clientId,date,start,length,repeat,count,emptySet(),topic)
-                    }else store.editSession(edit,Jalali.millis(date,start),length,false)
+                            store.createClientAndSessions(name,canonicalPhone(phone),chosenDate,
+                                start,length,repeat,count,emptySet(),topic)
+                        }else{
+                            val clientId=chosen?:throw IllegalArgumentException("مراجع را انتخاب کنید.")
+                            store.addSessions(clientId,chosenDate,start,length,repeat,count,emptySet(),topic)
+                        }
+                    }else store.editSession(edit,Jalali.millis(chosenDate,start),length,false)
                     onSaved()
                 }catch(e:Exception){error=e.message?:"ذخیره ناموفق بود."}
             },enabled=edit!=null || (if(newClient)name.isNotBlank() else chosen!=null),

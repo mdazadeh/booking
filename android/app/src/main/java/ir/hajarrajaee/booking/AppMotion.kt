@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Small real-operation loading state; no clock, hourglass or fake progress. */
+/** Small real-operation loading state; no fake countdown or fake progress. */
 @Composable
 fun VaghLoadingLine(message:String){
     Surface(color=androidx.compose.ui.graphics.Color(0xFFF0EBFC),

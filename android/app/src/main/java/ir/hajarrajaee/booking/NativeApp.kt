@@ -15,6 +15,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.PendingActions
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,10 +29,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-val Forest=Color(0xFF09291D)
-val Green=Color(0xFF23A765)
-val Pale=Color(0xFFF4FAF5)
-val Slate=Color(0xFF5C7466)
+val Forest=Color(0xFF20372F)
+val Green=Color(0xFF0BA77C)
+val Pale=Color(0xFFF7FAF9)
+val Slate=Color(0xFF62776E)
 
 @Composable
 fun NativeApp(context: Context) {
@@ -42,6 +47,13 @@ fun NativeApp(context: Context) {
     var activeDay by remember { mutableStateOf(Jalali.today()) }
     var editSession by remember { mutableStateOf<LocalSession?>(null) }
     var online by remember { mutableStateOf(false) }
+    var quickVisible by remember { mutableStateOf(false) }
+    var quickDate by remember { mutableStateOf(Jalali.today()) }
+    var quickTime by remember { mutableStateOf<LocalTime?>(null) }
+    var quickEdit by remember { mutableStateOf<LocalSession?>(null) }
+    fun openQuick(date:LocalDate,time:LocalTime?,session:LocalSession?=null){
+        quickDate=date;quickTime=time;quickEdit=session;quickVisible=true
+    }
     var clock by remember { mutableStateOf(LocalTime.now(Jalali.zone).withNano(0)) }
     LaunchedEffect(Unit) { while (isActive) { clock=LocalTime.now(Jalali.zone).withNano(0); delay(1000L) } }
     val clients=remember(revision){db.clients()}
@@ -124,18 +136,15 @@ fun NativeApp(context: Context) {
     Scaffold(
         containerColor=Pale,
         topBar={
-            Surface(color=Color.Transparent,
-                modifier=Modifier.background(
-                    Brush.linearGradient(listOf(Color(0xFF064A34),Forest,Color(0xFF13734F)))
-                )) {
-                Row(Modifier.fillMaxWidth().padding(start=17.dp,end=17.dp,top=19.dp,bottom=18.dp),
+            Surface(color=Color.White,shadowElevation=2.dp) {
+                Row(Modifier.fillMaxWidth().padding(start=17.dp,end=17.dp,top=14.dp,bottom=14.dp),
                     verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween){
                     Column {
-                        Text("وقت‌یار",color=Color.White,fontSize=26.sp,fontWeight=FontWeight.Bold)
-                        Text(Jalali.label(Jalali.today())+" • "+clock.toString(),fontSize=13.sp,color=Color(0xFFC5EAD0))
+                        Text("وقت‌یار",color=Forest,fontSize=25.sp,fontWeight=FontWeight.Bold)
+                        Text(Jalali.label(Jalali.today())+" • "+clock.toString().faDigits(),fontSize=13.sp,color=Slate)
                     }
-                    Surface(color=Color(0xFF21563A),shape=RoundedCornerShape(16.dp)) {
-                        Text("نسخه ۱.۳ آزمایشی",color=Color.White,fontSize=12.sp,
+                    Surface(color=Color(0xFFE3F5EC),shape=RoundedCornerShape(16.dp)) {
+                        Text("تقویم و نوبت‌دهی",color=Forest,fontSize=12.sp,
                             modifier=Modifier.padding(horizontal=12.dp,vertical=9.dp))
                     }
                 }
@@ -143,32 +152,33 @@ fun NativeApp(context: Context) {
         },
         bottomBar={
             NavigationBar(containerColor=Color.White) {
-                val labels=listOf("امروز","تقویم","مراجعان","نوبت‌ها","بیشتر")
-                val symbols=listOf("◉","▦","♙","+","⋯")
+                val labels=listOf("تقویم","مراجعان","درخواست‌ها","بیشتر")
+                val symbols=listOf(Icons.Outlined.CalendarMonth,Icons.Outlined.Groups,Icons.Outlined.PendingActions,Icons.Outlined.Settings)
                 labels.forEachIndexed{i,label->
                     NavigationBarItem(selected=currentPage==i,onClick={currentPage=i},
-                        icon={Text(symbols[i],fontSize=21.sp)},
-                        label={Text(label,fontSize=10.sp)},alwaysShowLabel=true)
+                        icon={Icon(symbols[i],contentDescription=label)},
+                        label={Text(label,fontSize=12.sp)},alwaysShowLabel=true)
                 }
             }
         }
     ){ padding ->
         Box(Modifier.fillMaxSize().padding(padding)){
             when(currentPage){
-                0->DashboardPanel(sessions,clients,{ currentPage=3 },{currentPage=1})
-                1->CalendarPanel(activeDay,{activeDay=it},sessions,clients,{selected->
-                    editSession=selected;currentPage=3
-                })
-                2->ClientsPanel(db,clients,sessions,{refresh()})
-                3->SessionEditor(db,clients,sessions,editSession,
-                    onEditClear={editSession=null},onChange={refresh()},onSelectEdit={editSession=it},
-                    onGoClients={currentPage=2})
-                else->MorePanel(context,onLogout={signedIn=false},onOpenOnline={online=true},
+                0->CalendarPanel(activeDay,{activeDay=it},sessions,clients,
+                    onEdit={s->openQuick(Jalali.time(s.startMillis).toLocalDate(),
+                        Jalali.time(s.startMillis).toLocalTime(),s)},
+                    onAdd={date,time->activeDay=date;openQuick(date,time)})
+                1->ClientsPanel(db,clients,sessions,{refresh()})
+                2->BookingScreen(context)
+                else->MorePanel(context,onLogout={signedIn=false},onOpenOnline={currentPage=2},
                     onDataChanged={refresh()})
             }
-            if(syncWarning.isNotBlank() && currentPage==4)Text(syncWarning,color=Color(0xFFA34B2D))
+            if(syncWarning.isNotBlank() && currentPage==3)Text(syncWarning,color=Color(0xFFA34B2D))
         }
     }
+    if(quickVisible) QuickBookingSheet(db,clients,sessions,quickDate,quickTime,quickEdit,
+        onDismiss={quickVisible=false;quickEdit=null},
+        onSaved={quickVisible=false;quickEdit=null;refresh()})
 }
 
 @Composable
@@ -224,7 +234,7 @@ fun SessionCard(s:LocalSession,name:String,onClick:(()->Unit)?) {
                 if(s.series!=null)Text("↻ تکرارشونده",fontSize=11.sp,color=Green)
             }
             Text(Jalali.format(s.startMillis),color=Slate,fontSize=13.sp)
-            Text("مدت: "+s.minutes+" دقیقه"+(if(s.topic.isBlank())"" else " • "+s.topic),
+            Text("مدت: "+s.minutes.toString().faDigits()+" دقیقه"+(if(s.topic.isBlank())"" else " • "+s.topic),
                 color=Slate,fontSize=12.sp)
         }
     }
@@ -257,7 +267,7 @@ private fun MorePanel(context:Context,onLogout:()->Unit,onOpenOnline:()->Unit,on
                 Text("رزرو آنلاین مشتری",fontWeight=FontWeight.Bold)
                 Text("پس از نصب Backend، اطلاعات نوبت‌ها از بخش «همگام‌سازی با سایت» به سرور ارسال و دریافت می‌شود. اطلاعات خصوصی شرح حال فقط روی گوشی می‌ماند.",
                     fontSize=13.sp,color=Slate)
-                OutlinedButton(onClick=onOpenOnline){Text("ورود به پنل آنلاین (آزمایشی)")}
+                OutlinedButton(onClick=onOpenOnline){Text("مدیریت درخواست‌ها و لینک‌های رزرو")}
             }
         }
         ReminderControls(context)

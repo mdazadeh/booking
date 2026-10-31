@@ -13,6 +13,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.LocalDate
+import java.time.LocalTime
 
 @Composable
 fun JalaliMonthPicker(
@@ -67,7 +68,7 @@ fun JalaliMonthPicker(
                         border=if(day==Jalali.today()&&!isSelected) BorderStroke(1.dp,Green) else null){
                         Column(horizontalAlignment=Alignment.CenterHorizontally,
                             verticalArrangement=Arrangement.Center) {
-                            Text(j.day.toString(),fontSize=13.sp,
+                            Text(j.day.toString().faDigits(),fontSize=13.sp,
                                 fontWeight=if(isSelected)FontWeight.Bold else FontWeight.Normal,
                                 color=if(isSelected||isCustom)Color.White else
                                     if(inMonth)Forest else Color(0xFFB4BDB6))
@@ -90,7 +91,8 @@ fun CalendarPanel(
     onSelect:(LocalDate)->Unit,
     sessions:List<LocalSession>,
     clients:List<LocalClient>,
-    onEdit:(LocalSession)->Unit
+    onEdit:(LocalSession)->Unit,
+    onAdd:(LocalDate,LocalTime?)->Unit
 ) {
     var mode by remember { mutableIntStateOf(0) }
     val daySessions=sessions.filter {
@@ -111,7 +113,7 @@ fun CalendarPanel(
             colors=CardDefaults.cardColors(containerColor=Color.White)){
             Column(Modifier.padding(13.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){
                 when(mode) {
-                    0->JalaliMonthPicker(selected,onSelect,sessions)
+                    0->JalaliMonthPicker(selected,{ day->onSelect(day);onAdd(day,null) },sessions)
                     1->{
                         val start=selected.minusDays(Jalali.weekday(selected).toLong())
                         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
@@ -126,16 +128,16 @@ fun CalendarPanel(
                                 val total=sessions.count{
                                     it.status=="approved" && Jalali.time(it.startMillis).toLocalDate()==d
                                 }
-                                Surface(onClick={onSelect(d)},modifier=Modifier.weight(1f).height(73.dp),
+                                Surface(onClick={onSelect(d);onAdd(d,null)},modifier=Modifier.weight(1f).height(73.dp),
                                     shape=RoundedCornerShape(10.dp),
                                     color=if(d==selected)Forest else Pale){
                                     Column(horizontalAlignment=Alignment.CenterHorizontally,
                                         verticalArrangement=Arrangement.Center){
                                         Text(Jalali.weekdays[offset].take(3),fontSize=10.sp,
                                             color=if(d==selected)Color.White else Slate)
-                                        Text(Jalali.jalali(d).day.toString(),fontSize=17.sp,
+                                        Text(Jalali.jalali(d).day.toString().faDigits(),fontSize=17.sp,
                                             color=if(d==selected)Color.White else Forest)
-                                        if(total>0)Text(total.toString()+" ●",fontSize=10.sp,
+                                        if(total>0)Text(total.toString().faDigits()+" ●",fontSize=10.sp,
                                             color=if(d==selected)Color.White else Green)
                                     }
                                 }
@@ -155,7 +157,10 @@ fun CalendarPanel(
         }
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
             Text(Jalali.label(selected),fontWeight=FontWeight.Bold,fontSize=18.sp,color=Forest)
-            Text(daySessions.size.toString()+" نوبت",color=Slate)
+            Row(verticalAlignment=Alignment.CenterVertically){
+                Text(daySessions.size.toString().faDigits()+" نوبت",color=Slate)
+                TextButton(onClick={onAdd(selected,null)}){Text("＋ ثبت نوبت")}
+            }
         }
         if(mode==2) {
             // Minute-accurate events are shown under their real start hour, never snapped.
@@ -163,11 +168,13 @@ fun CalendarPanel(
                 val items=daySessions.filter{Jalali.time(it.startMillis).hour==hour}
                 Row(Modifier.fillMaxWidth().padding(vertical=3.dp),
                     horizontalArrangement=Arrangement.spacedBy(9.dp)){
-                    Text(hour.toString().padStart(2,'0')+":00",
+                    Text((hour.toString().padStart(2,'0')+":00").faDigits(),
                         fontSize=12.sp,color=Slate,modifier=Modifier.width(52.dp).padding(top=12.dp))
                     Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(5.dp)){
                         if(items.isEmpty())
-                            HorizontalDivider(color=Color(0xFFD6E7DA),modifier=Modifier.padding(top=16.dp))
+                            OutlinedButton(onClick={onAdd(selected,LocalTime.of(hour,0))},modifier=Modifier.fillMaxWidth()){
+                                Text("＋ ساعت آزاد؛ ثبت نوبت",fontSize=12.sp)
+                            }
                         items.forEach { s ->
                             val name=clients.firstOrNull{it.id==s.clientId}?.name?:"مراجع"
                             SessionCard(s,name){onEdit(s)}
@@ -184,7 +191,7 @@ fun CalendarPanel(
             val name=clients.firstOrNull{it.id==s.clientId}?.name?:"مراجع"
             SessionCard(s,name){onEdit(s)}
         }
-        Text("با لمس هر جلسه می‌توان زمان آن را تغییر داد یا نوبت را حذف کرد.",
+        Text("برای ویرایش، نوبت را لمس کنید؛ برای افزودن، روز یا ساعت را لمس کنید.",
             fontSize=12.sp,color=Slate)
     }
 }

@@ -1,0 +1,152 @@
+package ir.hajarrajaee.booking
+
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import java.time.LocalDate
+import java.time.LocalTime
+
+/** Quick add/edit directly from Calendar. Uses existing local database without schema changes. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun QuickBookingSheet(
+    store:BookingStore,clients:List<LocalClient>,sessions:List<LocalSession>,
+    date:LocalDate,initialTime:LocalTime?,edit:LocalSession?,
+    onDismiss:()->Unit,onSaved:()->Unit
+) {
+    val key=edit?.id
+    var chosen by remember(date,key){mutableStateOf(edit?.clientId)}
+    var search by remember(date,key){mutableStateOf("")}
+    var newClient by remember(date,key){mutableStateOf(clients.isEmpty())}
+    var name by remember(date,key){mutableStateOf("")}
+    var phone by remember(date,key){mutableStateOf("")}
+    var topic by remember(date,key){mutableStateOf("")}
+    var time by remember(date,key){mutableStateOf((initialTime?:LocalTime.of(10,0)).toString().take(5))}
+    var duration by remember(date,key){mutableStateOf((edit?.minutes?:60).toString())}
+    var repeat by remember(date,key){mutableStateOf(Repeat.NONE)}
+    var repeatCount by remember(date,key){mutableStateOf("4")}
+    var repeatOpen by remember(date,key){mutableStateOf(false)}
+    var error by remember(date,key){mutableStateOf("")}
+    var confirmDelete by remember{mutableStateOf(false)}
+    val currentClient=clients.firstOrNull{it.id==chosen}
+    ModalBottomSheet(onDismissRequest=onDismiss,containerColor=Color(0xFFF7FAF9),
+        sheetState=rememberModalBottomSheetState(skipPartiallyExpanded=true)) {
+        Column(Modifier.fillMaxWidth().heightIn(max=670.dp).verticalScroll(rememberScrollState())
+            .padding(start=18.dp,end=18.dp,bottom=30.dp),
+            verticalArrangement=Arrangement.spacedBy(10.dp)){
+            Text(if(edit==null)"ثبت سریع نوبت" else "ویرایش نوبت",fontSize=22.sp,
+                fontWeight=FontWeight.Bold,color=Forest)
+            Text(Jalali.label(date),color=Slate,fontSize=16.sp)
+            if(edit==null) {
+                Text("مراجع",fontWeight=FontWeight.Bold,color=Forest)
+                if(newClient) {
+                    OutlinedTextField(name,{name=it},label={Text("نام و نام خانوادگی *")},
+                        modifier=Modifier.fillMaxWidth(),singleLine=true)
+                    PhoneNumberField(phone,{phone=it})
+                    if(clients.isNotEmpty())TextButton(onClick={newClient=false}){
+                        Text("انتخاب از مراجعان قبلی")
+                    }
+                } else {
+                    OutlinedTextField(search,{search=it},label={Text("جست‌وجوی نام یا موبایل")},
+                        modifier=Modifier.fillMaxWidth(),singleLine=true)
+                    val results=clients.filter{it.name.contains(search,true) ||
+                        it.phone.contains(search.asciiDigits(),true)}.take(15)
+                    LazyRow(horizontalArrangement=Arrangement.spacedBy(6.dp)){
+                        items(results,key={it.id}){c->
+                            FilterChip(selected=chosen==c.id,onClick={chosen=c.id;search=c.name},
+                                label={Text(c.name)})
+                        }
+                    }
+                    TextButton(onClick={newClient=true;chosen=null}){Text("＋ مراجع جدید")}
+                }
+            } else Text("مراجع: "+(currentClient?.name?:"مراجع"),fontWeight=FontWeight.Bold,color=Forest)
+            Text("ساعت شروع",fontWeight=FontWeight.Bold,color=Forest)
+            val hours=listOf("09:00","10:00","11:00","12:00","14:00","16:00","18:00")
+            LazyRow(horizontalArrangement=Arrangement.spacedBy(6.dp)){
+                items(hours){value->
+                    val start=Jalali.millis(date,LocalTime.parse(value))
+                    val length=(duration.toIntOrNull()?:60)*60000L
+                    val free=sessions.none{s->s.status=="approved" && s.id!=edit?.id &&
+                        start<s.startMillis+s.minutes*60000L && start+length>s.startMillis}
+                    FilterChip(selected=time==value,onClick={time=value},enabled=free || time==value,
+                        label={Text(value.faDigits())})
+                }
+            }
+            OutlinedTextField(time.faDigits(),{time=it.asciiDigits()},
+                label={Text("ساعت دقیق؛ مانند ۱۷:۴۰")},modifier=Modifier.fillMaxWidth(),
+                singleLine=true,textStyle=TextStyle(fontFamily=VaghFontFamily,textDirection=TextDirection.Ltr),
+                keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number))
+            Text("مدت جلسه",fontWeight=FontWeight.Bold,color=Forest)
+            Row(horizontalArrangement=Arrangement.spacedBy(5.dp)){
+                listOf(30,45,60,90).forEach{value->
+                    FilterChip(selected=duration==value.toString(),onClick={duration=value.toString()},
+                        label={Text(value.toString().faDigits()+" دقیقه",fontSize=11.sp)})
+                }
+            }
+            if(edit==null){
+                OutlinedTextField(topic,{topic=it},label={Text("توضیح کوتاه (اختیاری)")},
+                    modifier=Modifier.fillMaxWidth(),maxLines=3)
+                TextButton(onClick={repeatOpen=!repeatOpen}){
+                    Text(if(repeatOpen)"بستن گزینه‌های تکرار" else "↻ تکرار نوبت (اختیاری)")
+                }
+                if(repeatOpen){
+                    listOf(Repeat.NONE,Repeat.WEEKLY,Repeat.BIWEEKLY,Repeat.MONTHLY).forEach{option->
+                        Row(verticalAlignment=Alignment.CenterVertically){
+                            RadioButton(selected=repeat==option,onClick={repeat=option})
+                            Text(option.label,Modifier.clickable{repeat=option})
+                        }
+                    }
+                    if(repeat!=Repeat.NONE)OutlinedTextField(repeatCount.faDigits(),{
+                        repeatCount=it.asciiDigits().filter(Char::isDigit).take(3)},
+                        modifier=Modifier.fillMaxWidth(),label={Text("تعداد نوبت‌ها؛ حداکثر ۱۰۴")},
+                        keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),singleLine=true)
+                }
+            }
+            if(error.isNotBlank())Text(error,color=Color(0xFFB74435))
+            Button(onClick={
+                try{
+                    val start=LocalTime.parse(time)
+                    val length=duration.toIntOrNull()?:0
+                    require(length in 5..480){"مدت جلسه باید بین ۵ تا ۴۸۰ دقیقه باشد."}
+                    if(edit==null){
+                        val count=if(repeat==Repeat.NONE)1 else (repeatCount.toIntOrNull()?:0)
+                        require(count in 1..104){"تعداد جلسات باید بین ۱ تا ۱۰۴ باشد."}
+                        val clientId=if(newClient){
+                            require(name.trim().isNotEmpty()){"نام مراجع را وارد کنید."}
+                            store.saveClient(null,name,canonicalPhone(phone),"")
+                        }else chosen?:throw IllegalArgumentException("مراجع را انتخاب کنید.")
+                        store.addSessions(clientId,date,start,length,repeat,count,emptySet(),topic)
+                    }else store.editSession(edit,Jalali.millis(date,start),length,false)
+                    onSaved()
+                }catch(e:Exception){error=e.message?:"ذخیره ناموفق بود."}
+            },enabled=edit!=null || (if(newClient)name.isNotBlank() else chosen!=null),
+                modifier=Modifier.fillMaxWidth().height(53.dp),
+                shape=RoundedCornerShape(15.dp)){
+                Text(if(edit==null)"ثبت نوبت" else "ذخیره تغییرات",fontSize=16.sp)
+            }
+            if(edit!=null)OutlinedButton(onClick={confirmDelete=true},modifier=Modifier.fillMaxWidth()){
+                Text("لغو نوبت",color=Color(0xFFB74435))
+            }
+        }
+    }
+    if(confirmDelete && edit!=null)AlertDialog(
+        onDismissRequest={confirmDelete=false},title={Text("لغو نوبت؟")},
+        text={Text("این نوبت از تقویم حذف می‌شود.")},
+        confirmButton={Button(onClick={store.deleteSession(edit,false);confirmDelete=false;onSaved()}){Text("تأیید لغو")}},
+        dismissButton={TextButton(onClick={confirmDelete=false}){Text("بازگشت")}}
+    )
+}

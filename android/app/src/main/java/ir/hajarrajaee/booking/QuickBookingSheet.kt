@@ -48,12 +48,12 @@ fun QuickBookingSheet(
     var confirmDelete by remember{mutableStateOf(false)}
     var progress by remember(date,key){mutableStateOf(edit?.progress ?: "scheduled")}
     val currentClient=clients.firstOrNull{it.id==chosen}
-    ModalBottomSheet(onDismissRequest=onDismiss,containerColor=Color(0xFFF7FAF9),
+    ModalBottomSheet(onDismissRequest=onDismiss,containerColor=Color(0xFFFFFAFD),
         sheetState=rememberModalBottomSheetState(skipPartiallyExpanded=true)) {
         Column(Modifier.fillMaxWidth().heightIn(max=670.dp).verticalScroll(rememberScrollState())
             .padding(start=18.dp,end=18.dp,bottom=30.dp),
             verticalArrangement=Arrangement.spacedBy(10.dp)){
-            Text(if(edit==null)"ثبت سریع نوبت" else "ویرایش نوبت",fontSize=22.sp,
+            Text(if(edit==null)"ثبت سریع نوبت" else "ویرایش نوبت",fontSize=24.sp,
                 fontWeight=FontWeight.Bold,color=Forest)
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,
                 horizontalArrangement=Arrangement.SpaceBetween){
@@ -126,25 +126,23 @@ fun QuickBookingSheet(
             }
             Text("جداکننده ساعت به‌صورت خودکار درج می‌شود.",fontSize=13.sp,color=Slate)
             Text("مدت جلسه",fontWeight=FontWeight.Bold,color=Forest)
-            Row(horizontalArrangement=Arrangement.spacedBy(5.dp)){
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement=Arrangement.spacedBy(8.dp)){
                 listOf(30,45,60,90).forEach{value->
                     FilterChip(selected=duration==value.toString(),onClick={duration=value.toString()},
-                        label={Text(value.toString().faDigits()+" دقیقه",fontSize=11.sp)})
+                        label={Text(value.toString().faDigits()+" دقیقه",fontSize=14.sp)})
                 }
             }
             if(edit!=null){
                 Text("وضعیت مراجعه",fontWeight=FontWeight.Bold,color=Forest)
-                Column(verticalArrangement=Arrangement.spacedBy(3.dp)){
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement=Arrangement.spacedBy(8.dp)){
                     listOf("scheduled" to "برنامه‌ریزی‌شده","arrived" to "حاضر شد",
-                        "completed" to "انجام شد","no_show" to "حضور نداشت").chunked(2).forEach{chunk->
-                        Row(horizontalArrangement=Arrangement.spacedBy(7.dp)){
-                            chunk.forEach{(code,label)->
-                                FilterChip(selected=progress==code,onClick={
-                                    try{store.setProgress(edit.id,code);progress=code;onSaved()}
-                                    catch(e:Exception){error=e.message?:"خطا در ذخیره وضعیت"}
-                                },label={Text(label,fontSize=11.sp)})
-                            }
-                        }
+                        "completed" to "انجام شد","no_show" to "حضور نداشت").forEach{(code,label)->
+                        FilterChip(selected=progress==code,onClick={
+                            try{store.setProgress(edit.id,code);progress=code;onSaved()}
+                            catch(e:Exception){error=e.message?:"خطا در ذخیره وضعیت"}
+                        },label={Text(label,fontSize=13.sp)})
                     }
                 }
             }

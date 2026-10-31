@@ -42,7 +42,7 @@ fun JalaliMonthPicker(
         Row(Modifier.fillMaxWidth()) {
             Jalali.weekdays.forEachIndexed { index,name->
                 Text(name.take(3),modifier=Modifier.weight(1f),
-                    fontSize=11.sp,textAlign=TextAlign.Center,
+                    fontSize=13.sp,textAlign=TextAlign.Center,
                     color=if(index==6)Color(0xFFB05C4C)else Slate)
             }
         }
@@ -71,7 +71,7 @@ fun JalaliMonthPicker(
                         border=if(day==Jalali.today()&&!isSelected) BorderStroke(1.dp,Green) else null){
                         Column(horizontalAlignment=Alignment.CenterHorizontally,
                             verticalArrangement=Arrangement.Center) {
-                            Text(j.day.toString().faDigits(),fontSize=13.sp,
+                            Text(j.day.toString().faDigits(),fontSize=15.sp,
                                 fontWeight=if(isSelected)FontWeight.Bold else FontWeight.Normal,
                                 color=if(isSelected||isCustom)Color.White else
                                     if(inMonth)Forest else Color(0xFFB4BDB6))

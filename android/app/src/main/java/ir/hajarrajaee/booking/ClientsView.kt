@@ -47,7 +47,7 @@ fun ClientsPanel(
     Column(Modifier.fillMaxSize().padding(15.dp)){
         if(selected==null){
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
-                Text("پرونده مراجعان",fontSize=22.sp,fontWeight=FontWeight.Bold,color=Forest)
+                Text("مراجعان من",fontSize=24.sp,fontWeight=FontWeight.Bold,color=Forest)
                 Button(onClick={openEditor(null)},shape=RoundedCornerShape(17.dp)){
                     Icon(Icons.Outlined.PersonAddAlt,contentDescription=null)
                     Spacer(Modifier.width(6.dp))
@@ -61,10 +61,13 @@ fun ClientsPanel(
             val found=clients.filter {it.name.contains(search,true)||it.phone.contains(search.asciiDigits(),true)}
             LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)){
                 items(found,key={it.id}){c->
-                    Card(onClick={selectedId=c.id},shape=RoundedCornerShape(16.dp),
+                    Card(onClick={selectedId=c.id},shape=RoundedCornerShape(22.dp),
+                        colors=CardDefaults.cardColors(containerColor=
+                            if(c.id%2L==0L) androidx.compose.ui.graphics.Color(0xFFF2EBFF)
+                            else androidx.compose.ui.graphics.Color(0xFFE8F9F4)),
                         modifier=Modifier.fillMaxWidth()){
                         Column(Modifier.padding(16.dp)){
-                            Text(c.name,fontWeight=FontWeight.Bold,fontSize=17.sp,color=Forest)
+                            Text("🌼  "+c.name,fontWeight=FontWeight.Bold,fontSize=18.sp,color=Forest)
                             if(c.phone.isNotBlank())Text(c.phone.faDigits(),fontSize=13.sp,color=Slate)
                             Text(sessions.count{it.clientId==c.id}.toString().faDigits()+" جلسه ثبت‌شده",
                                 fontSize=12.sp,color=Green)
@@ -76,7 +79,7 @@ fun ClientsPanel(
         }else{
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
                 TextButton(onClick={selectedId=null;noteSession=null}){Text("بازگشت")}
-                Text("پرونده مراجع",fontWeight=FontWeight.Bold,fontSize=19.sp,color=Forest)
+                Text("پرونده مراجع",fontWeight=FontWeight.Bold,fontSize=21.sp,color=Forest)
                 Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically){
                     IconButton(onClick={deleteClient=selected;deletionError=""}){
                         Icon(Icons.Outlined.DeleteOutline,contentDescription="حذف مراجع و نوبت‌ها",

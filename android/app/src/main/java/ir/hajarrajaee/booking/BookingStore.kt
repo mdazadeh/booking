@@ -17,7 +17,7 @@ data class LocalSession(
     val progress:String="scheduled"
 )
 
-class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.db",null,3) {
+class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.db",null,4) {
     override fun onOpen(db:SQLiteDatabase) {
         super.onOpen(db)
         db.execSQL("CREATE TABLE IF NOT EXISTS security_meta (id INTEGER PRIMARY KEY, done INTEGER NOT NULL)")
@@ -65,6 +65,8 @@ class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.
         db.execSQL("CREATE TABLE notes(id INTEGER PRIMARY KEY AUTOINCREMENT,client_id INTEGER NOT NULL REFERENCES clients(id),session_id INTEGER REFERENCES sessions(id) ON DELETE SET NULL,body TEXT NOT NULL,created_at INTEGER NOT NULL)")
         db.execSQL("CREATE INDEX note_client ON notes(client_id,created_at)")
         db.execSQL("CREATE TABLE IF NOT EXISTS session_progress(session_id INTEGER PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,progress TEXT NOT NULL DEFAULT 'scheduled')")
+        db.execSQL("""CREATE TABLE IF NOT EXISTS pending_remote_deletions(
+            remote_id INTEGER PRIMARY KEY,sync_key TEXT NOT NULL,remote_version INTEGER NOT NULL)""")
     }
     override fun onUpgrade(db:SQLiteDatabase,old:Int,new:Int) {
         if(old<2){
@@ -77,6 +79,8 @@ class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.
             db.execSQL("UPDATE sessions SET sync_key=lower(hex(randomblob(16))) WHERE sync_key IS NULL")
         }
         if(old<3)db.execSQL("CREATE TABLE IF NOT EXISTS session_progress(session_id INTEGER PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,progress TEXT NOT NULL DEFAULT 'scheduled')")
+        if(old<4)db.execSQL("""CREATE TABLE IF NOT EXISTS pending_remote_deletions(
+            remote_id INTEGER PRIMARY KEY,sync_key TEXT NOT NULL,remote_version INTEGER NOT NULL)""")
     }
     fun clients():List<LocalClient>{
         val out=mutableListOf<LocalClient>()
@@ -209,6 +213,52 @@ class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.
         else writableDatabase.update("sessions",ContentValues().apply{put("status","cancelled");put("dirty",1)},
                 "id=?",arrayOf(session.id.toString()))
     }
+    data class PendingDeletion(val remoteId:Long,val key:String,val version:Int)
+    fun queuedDeletions():List<PendingDeletion>{
+        val result=mutableListOf<PendingDeletion>()
+        readableDatabase.rawQuery(
+            "SELECT remote_id,sync_key,remote_version FROM pending_remote_deletions",null).use{c->
+            while(c.moveToNext())result.add(PendingDeletion(c.getLong(0),c.getString(1),c.getInt(2)))
+        }
+        return result
+    }
+    fun acknowledgeDeletion(remoteId:Long){
+        writableDatabase.delete("pending_remote_deletions","remote_id=?",arrayOf(remoteId.toString()))
+    }
+    /** Atomic cascade. Remote cancellations survive offline and are sent later. */
+    fun deleteClientCascade(clientId:Long):Int{
+        val db=writableDatabase
+        db.beginTransaction()
+        return try {
+            val present=db.rawQuery("SELECT id FROM clients WHERE id=?",arrayOf(clientId.toString()))
+                .use{it.moveToFirst()}
+            require(present){"مراجع پیدا نشد."}
+            val rows=sessions().filter{it.clientId==clientId}
+            rows.filter{it.remoteId!=null && it.status=="approved"}.forEach{session->
+                db.execSQL(
+                    "INSERT OR REPLACE INTO pending_remote_deletions(remote_id,sync_key,remote_version) VALUES(?,?,?)",
+                    arrayOf(session.remoteId!!,session.syncKey,session.remoteVersion))
+            }
+            db.delete("notes","client_id=?",arrayOf(clientId.toString()))
+            db.delete("sessions","client_id=?",arrayOf(clientId.toString()))
+            db.delete("clients","id=?",arrayOf(clientId.toString()))
+            db.setTransactionSuccessful()
+            rows.size
+        }finally{db.endTransaction()}
+    }
+    /** Device-only reset. Remote appointments are left intact and session is disconnected. */
+    fun clearLocalData(){
+        val db=writableDatabase
+        db.beginTransaction()
+        try{
+            db.delete("notes",null,null)
+            db.delete("session_progress",null,null)
+            db.delete("sessions",null,null)
+            db.delete("clients",null,null)
+            db.delete("pending_remote_deletions",null,null)
+            db.setTransactionSuccessful()
+        }finally{db.endTransaction()}
+    }
     fun dirtySessions():List<LocalSession> = sessions().filter{it.dirty}
     fun markSynced(id:Long,remoteId:Long,version:Int) {
         val v=ContentValues().apply{
@@ -223,6 +273,7 @@ class BookingStore(context:Context):SQLiteOpenHelper(context,"booking_local_1_2.
         require(remoteId>0 && version>0 && minutes in 5..480 && name.isNotBlank())
         val current=sessions()
         val existing=current.firstOrNull{it.remoteId==remoteId || (key!=null && it.syncKey==key)}
+        if(queuedDeletions().any{it.remoteId==remoteId})return true
         if(existing!=null && existing.dirty)return false
         if(existing!=null && existing.remoteVersion>=version)return true
         val available=clients()

@@ -64,6 +64,21 @@ object SyncClient {
             BookingStore(context).use { db ->
                 var uploaded=0
                 val conflicts=mutableListOf<String>()
+                // Deletion queue must be drained before import, otherwise deleted clients reappear.
+                db.queuedDeletions().forEach { deletion ->
+                    val body=JSONObject()
+                        .put("action","cancel")
+                        .put("remote_id",deletion.remoteId)
+                        .put("sync_key",deletion.key)
+                        .put("expected_version",deletion.version)
+                    try{
+                        call("POST","/admin/sync/mutate",auth,body)
+                        db.acknowledgeDeletion(deletion.remoteId)
+                        uploaded++
+                    }catch(e:Exception){
+                        conflicts.add("لغو نوبت حذف‌شده #"+deletion.remoteId+": "+(e.message?:"خطا"))
+                    }
+                }
                 // Server is authoritative: upload each local edit under server-side day lock.
                 db.dirtySessions().forEach { appointment ->
                     val client=db.clients().firstOrNull{it.id==appointment.clientId}

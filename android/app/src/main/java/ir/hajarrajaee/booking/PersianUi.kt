@@ -15,6 +15,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.sp
 
 /** Persian digits are presentation-only: storage, dates and API stay ASCII. */
 fun String.faDigits():String=buildString(length) {
@@ -54,12 +55,12 @@ val VaghTypography=Typography(
     headlineLarge=base.headlineLarge.copy(fontFamily=VaghFontFamily),
     headlineMedium=base.headlineMedium.copy(fontFamily=VaghFontFamily),
     headlineSmall=base.headlineSmall.copy(fontFamily=VaghFontFamily),
-    titleLarge=base.titleLarge.copy(fontFamily=VaghFontFamily,fontWeight=FontWeight.Bold),
-    titleMedium=base.titleMedium.copy(fontFamily=VaghFontFamily,fontWeight=FontWeight.Bold),
+    titleLarge=base.titleLarge.copy(fontFamily=VaghFontFamily,fontWeight=FontWeight.Bold,fontSize=18.sp),
+    titleMedium=base.titleMedium.copy(fontFamily=VaghFontFamily,fontWeight=FontWeight.Bold,fontSize=19.sp),
     titleSmall=base.titleSmall.copy(fontFamily=VaghFontFamily,fontWeight=FontWeight.Medium),
-    bodyLarge=base.bodyLarge.copy(fontFamily=VaghFontFamily,fontWeight=FontWeight.Medium),
-    bodyMedium=base.bodyMedium.copy(fontFamily=VaghFontFamily,fontWeight=FontWeight.Medium),
-    bodySmall=base.bodySmall.copy(fontFamily=VaghFontFamily),
+    bodyLarge=base.bodyLarge.copy(fontFamily=VaghFontFamily,fontWeight=FontWeight.Medium,fontSize=18.sp),
+    bodyMedium=base.bodyMedium.copy(fontFamily=VaghFontFamily,fontWeight=FontWeight.Medium,fontSize=18.sp),
+    bodySmall=base.bodySmall.copy(fontFamily=VaghFontFamily,fontSize=14.sp),
     labelLarge=base.labelLarge.copy(fontFamily=VaghFontFamily,fontWeight=FontWeight.Bold),
     labelMedium=base.labelMedium.copy(fontFamily=VaghFontFamily),
     labelSmall=base.labelSmall.copy(fontFamily=VaghFontFamily)

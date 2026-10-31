@@ -105,10 +105,26 @@ fun QuickBookingSheet(
                         label={Text(value.faDigits())})
                 }
             }
-            OutlinedTextField(time.faDigits(),{time=it.asciiDigits()},
-                label={Text("ساعت دقیق؛ مانند ۱۷:۴۰")},modifier=Modifier.fillMaxWidth(),
-                singleLine=true,textStyle=TextStyle(fontFamily=VaghFontFamily,textDirection=TextDirection.Ltr),
-                keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number))
+            Text("ساعت دقیق",fontWeight=FontWeight.Bold,fontSize=16.sp,color=Forest)
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(9.dp),
+                verticalAlignment=Alignment.CenterVertically){
+                OutlinedTextField(
+                    value=time.substringBefore(':').faDigits(),
+                    onValueChange={value->
+                        time=value.asciiDigits().filter{it.isDigit()}.take(2)+":"+
+                            time.substringAfter(':',"00")
+                    },label={Text("ساعت")},singleLine=true,modifier=Modifier.weight(1f),
+                    keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number))
+                Text(":",fontSize=27.sp,fontWeight=FontWeight.Bold,color=Green)
+                OutlinedTextField(
+                    value=time.substringAfter(':',"00").faDigits(),
+                    onValueChange={value->
+                        time=time.substringBefore(':')+":"+
+                            value.asciiDigits().filter{it.isDigit()}.take(2)
+                    },label={Text("دقیقه")},singleLine=true,modifier=Modifier.weight(1f),
+                    keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number))
+            }
+            Text("جداکننده ساعت به‌صورت خودکار درج می‌شود.",fontSize=13.sp,color=Slate)
             Text("مدت جلسه",fontWeight=FontWeight.Bold,color=Forest)
             Row(horizontalArrangement=Arrangement.spacedBy(5.dp)){
                 listOf(30,45,60,90).forEach{value->
@@ -154,7 +170,9 @@ fun QuickBookingSheet(
             if(error.isNotBlank())Text(error,color=Color(0xFFB74435))
             Button(onClick={
                 try{
-                    val start=LocalTime.parse(time)
+                    val normalizedTime=time.substringBefore(':').padStart(2,'0')+":"+
+                        time.substringAfter(':',"").padStart(2,'0')
+                    val start=LocalTime.parse(normalizedTime)
                     val length=duration.toIntOrNull()?:0
                     require(length in 5..480){"مدت جلسه باید بین ۵ تا ۴۸۰ دقیقه باشد."}
                     val dates=if(edit==null)recurrenceDates(chosenDate,repeat,
@@ -163,7 +181,7 @@ fun QuickBookingSheet(
                     val moving=edit==null || Jalali.millis(chosenDate,start)!=edit.startMillis ||
                         length!=edit.minutes
                     if(moving) require(dates.all{WorkingHours.validate(context,it,start,length)}){
-                        "زمان انتخابی خارج از ساعات کاری یا زمان استراحت است."
+                        "زمان انتخابی خارج از ساعات کاری است."
                     }
                     if(edit==null){
                         val count=if(repeat==Repeat.NONE)1 else (repeatCount.toIntOrNull()?:0)

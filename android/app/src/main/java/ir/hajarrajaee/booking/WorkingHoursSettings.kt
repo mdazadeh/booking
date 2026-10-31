@@ -19,13 +19,11 @@ fun WorkingHoursSettings(context:Context,onSaved:()->Unit){
     var enabled by remember(selected,revision){mutableStateOf(settings.enabled)}
     var start by remember(selected,revision){mutableStateOf(WorkingHours.clock(settings.open))}
     var end by remember(selected,revision){mutableStateOf(WorkingHours.clock(settings.close))}
-    var breakFrom by remember(selected,revision){mutableStateOf(WorkingHours.clock(settings.breakFrom))}
-    var breakTo by remember(selected,revision){mutableStateOf(WorkingHours.clock(settings.breakTo))}
     var message by remember{mutableStateOf("")}
     Card(shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=androidx.compose.ui.graphics.Color.White)){
         Column(Modifier.fillMaxWidth().padding(15.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
-            Text("ساعات کاری و زمان استراحت",style=MaterialTheme.typography.titleMedium)
-            Text("تنظیمات فعلاً روی همین گوشی اعمال می‌شود؛ برای هماهنگی با لینک رزرو مشتری، سرور هم باید در مرحله استقرار به‌روزرسانی شود.",
+            Text("🌈 ساعات کاری هفتگی",style=MaterialTheme.typography.titleMedium)
+            Text("روزهای فعال و ساعت شروع و پایان را تعیین کنید. انتشار این برنامه در سایت، یک مرحله جداگانه است.",
                 style=MaterialTheme.typography.bodySmall,color=Slate)
             Row(Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement=Arrangement.spacedBy(5.dp)){
@@ -42,20 +40,13 @@ fun WorkingHoursSettings(context:Context,onSaved:()->Unit){
                     ClockField("شروع",start,{start=it},Modifier.weight(1f))
                     ClockField("پایان",end,{end=it},Modifier.weight(1f))
                 }
-                Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
-                    ClockField("شروع استراحت",breakFrom,{breakFrom=it},Modifier.weight(1f))
-                    ClockField("پایان استراحت",breakTo,{breakTo=it},Modifier.weight(1f))
-                }
-                Text("برای حذف استراحت، ساعت شروع و پایان استراحت را برابر وارد کنید.",
-                    style=MaterialTheme.typography.bodySmall,color=Slate)
             }
             Button(onClick={
                 try{
                     val w=WorkWindow(enabled,
                         WorkingHours.parseClock(start)?:error("ساعت شروع نامعتبر است."),
                         WorkingHours.parseClock(end)?:error("ساعت پایان نامعتبر است."),
-                        WorkingHours.parseClock(breakFrom)?:error("شروع استراحت نامعتبر است."),
-                        WorkingHours.parseClock(breakTo)?:error("پایان استراحت نامعتبر است."))
+                        0,0)
                     WorkingHours.save(context,selected,w)
                     revision++;message="برنامه "+WorkingHours.labels[selected]+" ذخیره شد."
                     onSaved()

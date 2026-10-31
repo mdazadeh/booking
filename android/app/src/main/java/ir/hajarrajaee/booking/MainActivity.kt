@@ -45,7 +45,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF0BA77C), background = Color(0xFFF7FAF9)), typography=VaghTypography) {
+                MaterialTheme(colorScheme = lightColorScheme(
+                    primary = Color(0xFF13A892),
+                    secondary = Color(0xFF8D70D6),
+                    tertiary = Color(0xFFFF849C),
+                    background = Color(0xFFFFFAFD),
+                    surface = Color.White,
+                    onSurface = Color(0xFF303B59)),
+                    typography=VaghTypography) {
                     NativeApp(this)
                 }
             }

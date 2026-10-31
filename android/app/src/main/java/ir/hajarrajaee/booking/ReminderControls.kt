@@ -9,6 +9,10 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,7 +29,7 @@ fun ReminderControls(context:Context) {
     }
     Card(shape=RoundedCornerShape(20.dp)){
         Column(Modifier.padding(15.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
-            Text("آلارم و یادآوری جلسات",style=MaterialTheme.typography.titleMedium)
+            Text("🔔 یادآوری و آلارم جلسات",style=MaterialTheme.typography.titleMedium)
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
                 Text("فعال بودن یادآوری")
                 Switch(checked=enabled,onCheckedChange={
@@ -33,11 +37,13 @@ fun ReminderControls(context:Context) {
                 })
             }
             Text("مدت قبل از جلسه")
-            Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement=Arrangement.spacedBy(8.dp)){
                 listOf(10,30,60,120).forEach { min ->
                     FilterChip(selected=lead==min,onClick={
                         lead=min;ReminderScheduler.configure(context,enabled,lead)
-                    },label={Text(min.toString()+" دقیقه")})
+                    },label={Text(min.toString().faDigits()+" دقیقه",
+                        fontSize=14.sp,fontWeight=FontWeight.Medium)})
                 }
             }
             OutlinedButton(onClick={

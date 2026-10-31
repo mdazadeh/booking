@@ -20,7 +20,7 @@ object WorkingHours{
         val p=context.getSharedPreferences(NAME,Context.MODE_PRIVATE)
         val k="d$index"
         return WorkWindow(p.getBoolean(k+"_on",index!=6),p.getInt(k+"_start",540),
-            p.getInt(k+"_end",1140),p.getInt(k+"_breakstart",780),p.getInt(k+"_breakend",840))
+            p.getInt(k+"_end",1140),0,0)
     }
     fun save(context:Context,index:Int,w:WorkWindow){
         require(index in 0..6 && w.open in 0..1439 && w.close in 1..1440 && w.close>w.open)
@@ -29,7 +29,7 @@ object WorkingHours{
         val k="d$index"
         context.getSharedPreferences(NAME,Context.MODE_PRIVATE).edit()
             .putBoolean(k+"_on",w.enabled).putInt(k+"_start",w.open).putInt(k+"_end",w.close)
-            .putInt(k+"_breakstart",w.breakFrom).putInt(k+"_breakend",w.breakTo).apply()
+            .putInt(k+"_breakstart",0).putInt(k+"_breakend",0).apply()
     }
     fun forDate(context:Context,date:LocalDate)=get(context,dayIndex(date))
     fun validate(context:Context,date:LocalDate,start:LocalTime,minutes:Int):Boolean=

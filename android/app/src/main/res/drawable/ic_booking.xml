@@ -6,7 +6,7 @@
     <path android:pathData="M15,4h78a11,11 0,0 1,11 11v78a11,11 0,0 1,-11 11H15a11,11 0,0 1,-11 -11V15a11,11 0,0 1,11 -11z">
       <aapt:attr name="android:fillColor">
         <gradient android:startX="5" android:startY="5" android:endX="108" android:endY="105"
-                  android:startColor="#06472F" android:centerColor="#006D4B" android:endColor="#042A22" android:type="linear"/>
+                  android:startColor="#A38AEE" android:centerColor="#F58EB7" android:endColor="#FFBD99" android:type="linear"/>
       </aapt:attr>
     </path>
     <path android:fillColor="#81FAE7" android:fillAlpha="0.43"
@@ -20,22 +20,25 @@
                   android:startColor="#F2FFF9" android:endColor="#7AC9B1" android:type="linear"/>
       </aapt:attr>
     </path>
-    <path android:fillColor="#009667" android:pathData="M19,30a8,8 0,0 1,8 -8h54a8,8 0,0 1,8 8v12H19z"/>
-    <path android:strokeColor="#D7FFF1" android:strokeWidth="3.8" android:strokeLineCap="round"
+    <path android:fillColor="#23B6A4" android:pathData="M19,30a8,8 0,0 1,8 -8h54a8,8 0,0 1,8 8v12H19z"/>
+    <path android:strokeColor="#FFF4FA" android:strokeWidth="3.8" android:strokeLineCap="round"
           android:fillColor="#00000000" android:pathData="M37,18v12M70,18v12"/>
-    <path android:fillColor="#66AB94" android:fillAlpha="0.45"
+    <path android:fillColor="#BD9EE5" android:fillAlpha="0.45"
           android:pathData="M27,49h12v12H27zM45,49h12v12H45zM63,49h12v12H63zM27,67h12v12H27z"/>
-    <path android:fillColor="#00A66D" android:pathData="M45,67h12v12H45z"/>
+    <path android:fillColor="#E46F94" android:pathData="M45,67h12v12H45z"/>
     <path android:strokeColor="#FFFFFF" android:strokeWidth="2.6" android:strokeLineCap="round"
           android:fillColor="#00000000" android:pathData="M48,73l3,3l5,-6"/>
-    <path android:fillColor="#0C6C51" android:pathData="M74,53a25,25 0,1 0,0 50a25,25 0,1 0,0 -50"/>
+    <path android:fillColor="#8366C9" android:pathData="M74,53a25,25 0,1 0,0 50a25,25 0,1 0,0 -50"/>
     <path android:strokeColor="#B9FFF1" android:strokeWidth="3.2"
-          android:fillColor="#004E40" android:pathData="M74,58a20,20 0,1 0,0 40a20,20 0,1 0,0 -40"/>
+          android:fillColor="#A48AE2" android:pathData="M74,58a20,20 0,1 0,0 40a20,20 0,1 0,0 -40"/>
     <path android:fillColor="#D4FFF6" android:pathData="M72,61h4v6h-4zM72,89h4v6h-4zM58,76h6v4h-6zM84,76h6v4h-6z"/>
     <path android:strokeColor="#E8FFF6" android:strokeWidth="4.3"
           android:strokeLineCap="round" android:strokeLineJoin="round"
           android:fillColor="#00000000" android:pathData="M74,65v14l10,7"/>
-    <path android:fillColor="#71FFD3" android:pathData="M74,74a4,4 0,1 0,0 8a4,4 0,1 0,0 -8"/>
+    <path android:fillColor="#F8D56E" android:pathData="M74,74a4,4 0,1 0,0 8a4,4 0,1 0,0 -8"/>
     <path android:strokeColor="#B9FFEA" android:strokeAlpha="0.34" android:strokeWidth="2"
           android:fillColor="#00000000" android:pathData="M8,79q49,24 94,-21"/>
+    <!-- Playful soft-color heart over the calendar for child counseling -->
+    <path android:fillColor="#F472A6" android:pathData="M28,52c-4,-6 -11,0 -7,6l8,8l8,-8c4,-6 -3,-12 -7,-6l-1,2z"/>
+    <path android:fillColor="#FFD563" android:pathData="M88,17l3,7l8,2l-8,3l-3,7l-3,-7l-8,-3l8,-2z"/>
 </vector>

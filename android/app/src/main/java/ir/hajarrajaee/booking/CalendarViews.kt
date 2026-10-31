@@ -12,6 +12,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material.icons.outlined.AddCircleOutline
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -107,8 +110,8 @@ fun CalendarPanel(
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,
             horizontalArrangement=Arrangement.SpaceBetween){
             Column {
-                Text("تقویم نوبت‌ها",fontSize=22.sp,fontWeight=FontWeight.Bold,color=Forest)
-                Text(Jalali.label(selected),color=Slate,fontSize=13.sp)
+                Text("تقویم نوبت‌ها",fontSize=24.sp,fontWeight=FontWeight.Bold,color=Forest)
+                Text(Jalali.label(selected),color=Slate,fontSize=15.sp)
             }
             TextButton(onClick={onSelect(Jalali.today())}){Text("امروز")}
         }
@@ -176,15 +179,6 @@ fun CalendarPanel(
         }
         if(mode==2 && window.enabled){
             DayTimeline(selected,all,clientNames,window,onAdd,onEdit)
-            val outside=all.filter{session->
-                val t=Jalali.time(session.startMillis).toLocalTime()
-                val minute=t.hour*60+t.minute
-                minute<window.open || minute>=window.close
-            }
-            if(outside.isNotEmpty()){
-                Text("نوبت‌های خارج از ساعات فعلی",fontWeight=FontWeight.Bold,color=Slate)
-                outside.forEach{s->TimelineEvent(s,clientNames[s.clientId]?:"مراجع"){onEdit(s)}}
-            }
         }else if(mode==2 && !window.enabled){
             Card(colors=CardDefaults.cardColors(containerColor=Color(0xFFFFF4E8))){
                 Text("این روز در برنامه کاری تعطیل است. ساعات کاری را از تنظیمات تغییر دهید.",
@@ -219,20 +213,24 @@ private fun TimelineEvent(s:LocalSession,name:String,onClick:()->Unit){
         else->"تأییدشده"
     }
     Surface(onClick=onClick,modifier=Modifier.fillMaxWidth(),shape=RoundedCornerShape(14.dp),
-        color=tint.copy(alpha=.11f),border=BorderStroke(1.dp,tint.copy(alpha=.36f))){
+        color=tint.copy(alpha=.12f),border=BorderStroke(1.dp,tint.copy(alpha=.31f))){
         Row(Modifier.fillMaxWidth().padding(11.dp),verticalAlignment=Alignment.CenterVertically,
             horizontalArrangement=Arrangement.spacedBy(9.dp)){
             Box(Modifier.width(4.dp).height(38.dp).background(tint,RoundedCornerShape(3.dp)))
             Column(Modifier.weight(1f)){
                 Text(name,color=Forest,fontSize=16.sp,fontWeight=FontWeight.Bold)
                 Text((Jalali.time(s.startMillis).toLocalTime().toString().take(5)+
-                    " • "+s.minutes+" دقیقه").faDigits(),color=Slate,fontSize=12.sp)
+                    " • "+s.minutes+" دقیقه").faDigits(),color=Slate,fontSize=13.sp)
             }
-            Text(progress,color=tint,fontSize=11.sp,fontWeight=FontWeight.Bold)
+            Text(progress,color=tint,fontSize=12.sp,fontWeight=FontWeight.Bold)
         }
     }
 }
 
+/**
+ * Non-overlapping, measured rows: each time bucket grows to fit all appointments.
+ * No absolute offsets or minimum-height collision. Historical conflicts remain visible.
+ */
 @Composable
 private fun DayTimeline(
     day:LocalDate,
@@ -242,50 +240,89 @@ private fun DayTimeline(
     onAdd:(LocalDate,LocalTime?)->Unit,
     onEdit:(LocalSession)->Unit
 ){
-    val start=window.open
-    val end=window.close
-    val ppm=1.30f
-    val height=((end-start)*ppm).dp
-    val rangeSlots=(start until end step 30).toList()
-    Surface(shape=RoundedCornerShape(19.dp),color=Color.White) {
-        Box(Modifier.fillMaxWidth().height(height).padding(horizontal=10.dp)){
-            rangeSlots.forEach {minute->
-                val slotStart=LocalTime.of(minute/60,minute%60)
-                val withinBreak=window.breakTo>window.breakFrom &&
-                    minute<window.breakTo && minute+30>window.breakFrom
-                val occupied=entries.any{s->
-                    val slotMillis=Jalali.millis(day,slotStart)
-                    slotMillis<s.startMillis+s.minutes*60000L &&
-                        slotMillis+30*60000L>s.startMillis
+    val all=entries.sortedWith(compareBy<LocalSession>{it.startMillis}.thenBy{it.id})
+    val conflicts=all.flatMapIndexed{i,s->
+        all.drop(i+1).filter{other->
+            s.startMillis<other.startMillis+other.minutes*60000L &&
+                other.startMillis<s.startMillis+s.minutes*60000L
+        }.flatMap{listOf(s.id,it.id)}
+    }.toSet()
+    if(conflicts.isNotEmpty()){
+        Surface(color=Color(0xFFFFE7E5),shape=RoundedCornerShape(18.dp),
+            modifier=Modifier.fillMaxWidth()){
+            Row(Modifier.padding(14.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)){
+                Icon(androidx.compose.material.icons.Icons.Outlined.WarningAmber,
+                    contentDescription=null,tint=Color(0xFFB34F45))
+                Column {
+                    Text("تداخل در نوبت‌های موجود",color=Color(0xFF963E3B),
+                        fontWeight=FontWeight.Bold,fontSize=15.sp)
+                    Text("نوبت‌ها جدا نمایش داده می‌شوند؛ برای اصلاح، هر کارت را لمس کنید.",
+                        color=Color(0xFF963E3B),fontSize=12.sp)
                 }
-                Row(Modifier.fillMaxWidth().offset(y=((minute-start)*ppm).dp)
-                    .height((30*ppm).dp),
-                    verticalAlignment=Alignment.CenterVertically){
-                    Text(WorkingHours.clock(minute).faDigits(),fontSize=11.sp,
-                        color=Slate,modifier=Modifier.width(55.dp))
-                    Surface(onClick={onAdd(day,slotStart)},enabled=!withinBreak && !occupied,
-                        modifier=Modifier.weight(1f).height((30*ppm-3).dp),
-                        shape=RoundedCornerShape(6.dp),
-                        color=if(withinBreak) Color(0xFFFFF3E4) else Color(0xFFF9FCFA)){
-                        Row(Modifier.fillMaxSize().padding(horizontal=9.dp),
-                            verticalAlignment=Alignment.CenterVertically){
-                            if(withinBreak)Text("استراحت",fontSize=10.sp,color=Color(0xFF9B6A2B))
-                            else if(!occupied)Text("＋",color=Color(0xFF96B6A4),fontSize=14.sp)
+            }
+        }
+    }
+    val buckets=(window.open until window.close step 30).toList()
+    Column(verticalArrangement=Arrangement.spacedBy(5.dp)){
+        buckets.forEach{minute->
+            val bucketEnd=minute+30
+            val byStart=all.filter{s->
+                val t=Jalali.time(s.startMillis).toLocalTime()
+                val start=t.hour*60+t.minute
+                start>=minute && start<bucketEnd
+            }
+            val slot=LocalTime.of(minute/60,minute%60)
+            val startMs=Jalali.millis(day,slot)
+            // Offer a slot only when a standard 60-minute visit can fit.
+            val free=window.allows(slot,60) && all.none{s->
+                startMs<s.startMillis+s.minutes*60000L &&
+                    startMs+60*60000L>s.startMillis
+            }
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(9.dp),
+                verticalAlignment=Alignment.Top){
+                Text(WorkingHours.clock(minute).faDigits(),fontSize=13.sp,
+                    fontWeight=FontWeight.SemiBold,color=Slate,
+                    modifier=Modifier.width(54.dp).padding(top=15.dp))
+                Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(5.dp)){
+                    byStart.forEach{s->
+                        Column {
+                            if(s.id in conflicts)Text("⚠ تداخل زمان",
+                                color=Color(0xFFB34F45),fontSize=12.sp,fontWeight=FontWeight.Bold)
+                            TimelineEvent(s,names[s.clientId]?:"مراجع"){onEdit(s)}
+                        }
+                    }
+                    if(byStart.isEmpty()) {
+                        Surface(onClick={onAdd(day,slot)},enabled=free,
+                            modifier=Modifier.fillMaxWidth().heightIn(min=44.dp),
+                            shape=RoundedCornerShape(13.dp),
+                            color=if(free)Color(0xFFE9F8F2) else Color(0xFFF3F4F8),
+                            border=BorderStroke(1.dp,if(free)Color(0xFFB6E5D3) else Color(0xFFE8E8EE))){
+                            Row(Modifier.padding(horizontal=14.dp,vertical=12.dp),
+                                verticalAlignment=Alignment.CenterVertically,
+                                horizontalArrangement=Arrangement.spacedBy(7.dp)){
+                                if(free) {
+                                    Icon(androidx.compose.material.icons.Icons.Outlined.AddCircleOutline,
+                                        contentDescription=null,tint=Green,
+                                        modifier=Modifier.size(18.dp))
+                                    Text("زمان آزاد · ثبت نوبت",color=Forest,fontSize=14.sp,
+                                        fontWeight=FontWeight.Medium)
+                                }else {
+                                    Text("رزرو شده",color=Slate,fontSize=12.sp)
+                                }
+                            }
                         }
                     }
                 }
             }
-            entries.forEach{s->
-                val time=Jalali.time(s.startMillis).toLocalTime()
-                val minute=time.hour*60+time.minute
-                if(minute>=start && minute<end){
-                    Box(Modifier.fillMaxWidth()
-                        .offset(y=((minute-start)*ppm).dp)
-                        .padding(start=56.dp)
-                        .height((s.minutes*ppm).coerceAtLeast(47f).dp)
-                    ){TimelineEvent(s,names[s.clientId]?:"مراجع"){onEdit(s)}}
-                }
-            }
+        }
+        val offHours=all.filter{s->
+            val t=Jalali.time(s.startMillis).toLocalTime()
+            val minute=t.hour*60+t.minute
+            minute<window.open || minute>=window.close
+        }
+        if(offHours.isNotEmpty()){
+            Text("نوبت‌های خارج از ساعت کاری",fontWeight=FontWeight.Bold,color=Forest)
+            offHours.forEach{s->TimelineEvent(s,names[s.clientId]?:"مراجع"){onEdit(s)}}
         }
     }
 }

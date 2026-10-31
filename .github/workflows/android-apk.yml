@@ -42,9 +42,13 @@ jobs:
           TAG="v1.5.0-beta16"
           DEST="VaghYar-v1.5.0-beta16-debug.apk"
           cp android/app/build/outputs/apk/debug/app-debug.apk "$DEST"
-          gh release create "$TAG" "$DEST" \
-            --repo "${{ github.repository }}" \
-            --target "$GITHUB_SHA" \
-            --title "VaghYar 1.5.0 beta 16 — Calendar-first Android" \
-            --notes "Android 1.5 beta (not production). Time-grid calendar, office hours (on device), appointment rescheduling, attendance states (local only), unified encrypted booking admin session. Keep old app and export encrypted backup before restoring. Backend deployment and live-device QA still pending." \
-            --prerelease --latest=false
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$DEST" --repo "${{ github.repository }}" --clobber
+          else
+            gh release create "$TAG" "$DEST" \
+              --repo "${{ github.repository }}" \
+              --target "$GITHUB_SHA" \
+              --title "VaghYar 1.5.0 beta 16 — Calendar-first Android" \
+              --notes "Android 1.5 beta (not production). Time-grid calendar, office hours (on device), appointment rescheduling, attendance states (local only), unified encrypted booking admin session. Keep old app and export encrypted backup before restoring. Backend deployment and live-device QA still pending." \
+              --prerelease --latest=false
+          fi

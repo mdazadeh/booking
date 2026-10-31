@@ -59,7 +59,7 @@ val VaghTypography=Typography(
     titleMedium=base.titleMedium.copy(fontFamily=VaghFontFamily,fontWeight=FontWeight.Bold,fontSize=19.sp),
     titleSmall=base.titleSmall.copy(fontFamily=VaghFontFamily,fontWeight=FontWeight.Medium),
     bodyLarge=base.bodyLarge.copy(fontFamily=VaghFontFamily,fontWeight=FontWeight.Medium,fontSize=18.sp),
-    bodyMedium=base.bodyMedium.copy(fontFamily=VaghFontFamily,fontWeight=FontWeight.Medium,fontSize=18.sp),
+    bodyMedium=base.bodyMedium.copy(fontFamily=VaghFontFamily,fontWeight=FontWeight.Medium,fontSize=16.sp),
     bodySmall=base.bodySmall.copy(fontFamily=VaghFontFamily,fontSize=14.sp),
     labelLarge=base.labelLarge.copy(fontFamily=VaghFontFamily,fontWeight=FontWeight.Bold),
     labelMedium=base.labelMedium.copy(fontFamily=VaghFontFamily),

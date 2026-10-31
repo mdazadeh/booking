@@ -20,6 +20,8 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.PendingActions
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -29,10 +31,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-val Forest=Color(0xFF20372F)
-val Green=Color(0xFF0BA77C)
-val Pale=Color(0xFFF7FAF9)
-val Slate=Color(0xFF62776E)
+val Forest=Color(0xFF303B59)
+val Green=Color(0xFF13A892)
+val Pale=Color(0xFFFFFAFD)
+val Slate=Color(0xFF70788C)
+val Lilac=Color(0xFF9074D3)
+val Coral=Color(0xFFEF6F90)
 
 @Composable
 fun NativeApp(context: Context) {
@@ -87,11 +91,11 @@ fun NativeApp(context: Context) {
         Column(Modifier.fillMaxSize().background(Pale).verticalScroll(rememberScrollState()).padding(22.dp),
             verticalArrangement=Arrangement.Center) {
             Card(shape=RoundedCornerShape(30.dp),
-                border=BorderStroke(1.dp,Color(0xFFAAFFE4).copy(alpha=0.6f)),
+                border=BorderStroke(1.dp,Color(0xFFEEB6D5).copy(alpha=0.75f)),
                 elevation=CardDefaults.cardElevation(defaultElevation=16.dp),
-                colors=CardDefaults.cardColors(containerColor=Color(0xFF073D2C))) {
+                colors=CardDefaults.cardColors(containerColor=Color(0xFF55437A))) {
                 Column(Modifier.fillMaxWidth().padding(28.dp)) {
-                    Text("وقت‌یار",color=Color.White,fontSize=32.sp,fontWeight=FontWeight.Bold)
+                    Text("💗 وقت‌یار",color=Color.White,fontSize=32.sp,fontWeight=FontWeight.Bold)
                     Spacer(Modifier.height(6.dp))
                     Text("مدیریت نوبت‌ها • تقویم شمسی",color=Color(0xFFBEE6CD))
                     Spacer(Modifier.height(18.dp))
@@ -114,7 +118,7 @@ fun NativeApp(context: Context) {
                             signedIn=true;password="";authError=""
                         }else authError="نام کاربری یا رمز عبور صحیح نیست."
                     },modifier=Modifier.fillMaxWidth().height(52.dp),
-                        colors=ButtonDefaults.buttonColors(containerColor=Green)) {Text("ورود به تقویم")}
+                        colors=ButtonDefaults.buttonColors(containerColor=Coral)) {Text("ورود به تقویم")}
                     if(authError.isNotBlank())Text(authError,color=Color(0xFFFFC8AF),modifier=Modifier.padding(top=8.dp))
                 }
             }
@@ -136,17 +140,23 @@ fun NativeApp(context: Context) {
     Scaffold(
         containerColor=Pale,
         topBar={
-            Surface(color=Color.White,shadowElevation=2.dp) {
-                Row(Modifier.fillMaxWidth().padding(start=17.dp,end=17.dp,top=14.dp,bottom=14.dp),
-                    verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween){
-                    Column {
-                        Text("وقت‌یار",color=Forest,fontSize=25.sp,fontWeight=FontWeight.Bold)
-                        Text(Jalali.label(Jalali.today())+" • "+clock.toString().faDigits(),fontSize=13.sp,color=Slate)
+            Surface(color=Color(0xFFF4ECFF),shadowElevation=1.dp) {
+                Row(Modifier.fillMaxWidth().padding(start=16.dp,end=16.dp,top=13.dp,bottom=13.dp),
+                    verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(11.dp)){
+                    Surface(shape=RoundedCornerShape(20.dp),color=Color(0xFFFFDAE7),
+                        modifier=Modifier.size(55.dp)){
+                        Box(contentAlignment=Alignment.Center){
+                            Icon(Icons.Filled.Favorite,contentDescription="نشان وقت‌یار",
+                                tint=Coral,modifier=Modifier.size(29.dp))
+                        }
                     }
-                    Surface(color=Color(0xFFE3F5EC),shape=RoundedCornerShape(16.dp)) {
-                        Text("تقویم و نوبت‌دهی",color=Forest,fontSize=12.sp,
-                            modifier=Modifier.padding(horizontal=12.dp,vertical=9.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("وقت‌یار",color=Forest,fontSize=27.sp,fontWeight=FontWeight.Bold)
+                        Text(Jalali.label(Jalali.today())+" · "+clock.toString().faDigits(),
+                            fontSize=14.sp,color=Slate)
                     }
+                    Icon(Icons.Outlined.AutoAwesome,contentDescription="مشاوره کودک",
+                        tint=Lilac,modifier=Modifier.size(28.dp))
                 }
             }
         },
@@ -154,10 +164,16 @@ fun NativeApp(context: Context) {
             NavigationBar(containerColor=Color.White) {
                 val labels=listOf("تقویم","مراجعان","درخواست‌ها","بیشتر")
                 val symbols=listOf(Icons.Outlined.CalendarMonth,Icons.Outlined.Groups,Icons.Outlined.PendingActions,Icons.Outlined.Settings)
+                val palette=listOf(Green,Lilac,Coral,Color(0xFFE5A42A))
                 labels.forEachIndexed{i,label->
                     NavigationBarItem(selected=currentPage==i,onClick={currentPage=i},
-                        icon={Icon(symbols[i],contentDescription=label)},
-                        label={Text(label,fontSize=12.sp)},alwaysShowLabel=true)
+                        icon={Icon(symbols[i],contentDescription=label,
+                            tint=palette[i].copy(alpha=if(currentPage==i)1f else .70f))},
+                        label={Text(label,fontSize=13.sp,fontWeight=FontWeight.SemiBold)},
+                        colors=NavigationBarItemDefaults.colors(
+                            indicatorColor=palette[i].copy(alpha=.15f),
+                            selectedTextColor=Forest,unselectedTextColor=Slate),
+                        alwaysShowLabel=true)
                 }
             }
         }
@@ -224,10 +240,10 @@ private fun MetricCard(label:String,value:String,modifier:Modifier,color:Color,t
 @Composable
 fun SessionCard(s:LocalSession,name:String,onClick:(()->Unit)?) {
     Card(onClick=onClick?:{},enabled=onClick!=null,modifier=Modifier.fillMaxWidth(),
-        shape=RoundedCornerShape(17.dp),
-        border=BorderStroke(1.dp,Color(0xFFCBEBDA)),
-        elevation=CardDefaults.cardElevation(defaultElevation=4.dp),
-        colors=CardDefaults.cardColors(containerColor=Color.White.copy(alpha=0.88f))){
+        shape=RoundedCornerShape(21.dp),
+        border=BorderStroke(1.dp,Color(0xFFE7E2F3)),
+        elevation=CardDefaults.cardElevation(defaultElevation=2.dp),
+        colors=CardDefaults.cardColors(containerColor=Color(0xFFF3F0FF))){
         Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
                 Text(name,fontWeight=FontWeight.Bold,fontSize=16.sp,color=Forest)

@@ -34,13 +34,13 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
-      - name: Publish beta18 APK as a downloadable GitHub prerelease
-        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-beta18]')
+      - name: Publish beta19 APK as a downloadable GitHub prerelease
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-beta19]')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="v1.5.2-beta18"
-          DEST="VaghYar-v1.5.2-beta18-debug.apk"
+          TAG="v1.5.3-beta19"
+          DEST="VaghYar-v1.5.3-beta19-debug.apk"
           cp android/app/build/outputs/apk/debug/app-debug.apk "$DEST"
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release upload "$TAG" "$DEST" --repo "${{ github.repository }}" --clobber
@@ -48,7 +48,7 @@ jobs:
             gh release create "$TAG" "$DEST" \
               --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "VaghYar 1.5.2 beta 18 — Calendar-first Android" \
-              --notes "VaghYar 1.5.2 beta18: selected colorful hourglass app logo, redesigned pastel calendar and fast booking UI inspired by user references. Local SQLite schema unchanged from beta17; separate beta identity to protect previous data. Keep old app and migrate only by encrypted backup. Server unchanged." \
+              --title "VaghYar 1.5.3 beta 19 — Calendar-first Android" \
+              --notes "VaghYar 1.5.3 beta19: No hourglass icon or timer. Colorful calendar branding, smooth tab and calendar transitions, animated recurrence picker, real loading indicators for booking/sync, and custom multi-date bookings at the same time. Existing local data is isolated per test version; export and restore encrypted backup. Server unchanged." \
               --prerelease --latest=false
           fi

@@ -60,14 +60,13 @@ function dayAndTime(string $day, string $time): array {
     if (!$start || $start->format('Y-m-d H:i') !== $day.' '.$time) fail('Invalid date or time');
     return [$start, $start->modify('+60 minutes')];
 }
-function validCustomerSlot(DateTimeImmutable $start, DateTimeImmutable $end): bool {
+require_once dirname(__DIR__).'/app/work_hours.php';
+function validCustomerSlot(DateTimeImmutable $start, DateTimeImmutable $end,array $policy): bool {
     $now = new DateTimeImmutable('now', tehran());
     $today = $now->setTime(0, 0);
     return $start >= $now->modify('+4 hours') &&
         $start < $today->modify('+31 days') &&
-        $start->format('H:i') >= '10:00' &&
-        $end->format('H:i') <= '21:00' &&
-        $start->format('Y-m-d') === $end->format('Y-m-d') &&
+        scheduleAllows($start,$end,$policy) &&
         ((int)$start->format('i') % 5) === 0;
 }
 function lockDay(PDO $db, string $day): void {
@@ -88,9 +87,10 @@ function busy(PDO $db, DateTimeImmutable $start, DateTimeImmutable $end, ?int $i
 }
 function freeSlots(PDO $db, string $day): array {
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/D', $day)) fail('Invalid day');
-    [$base, $_] = dayAndTime($day, '10:00');
+    $policy=schedulePolicy($db);
+    [$base, $_] = dayAndTime($day, '00:00');
     $rangeStart=stamp($base);
-    $rangeEnd=stamp($base->modify('+11 hours'));
+    $rangeEnd=stamp($base->modify('+1 day'));
     $q=$db->prepare("SELECT starts_at,ends_at FROM appointments
       WHERE status='approved' AND ends_at>? AND starts_at<?");
     $q->execute([$rangeStart,$rangeEnd]);
@@ -100,10 +100,10 @@ function freeSlots(PDO $db, string $day): array {
     $q->execute([$rangeStart,$rangeEnd]);
     $periods=array_merge($periods,$q->fetchAll());
     $slots=[];
-    for ($minutes=0;$minutes<=600;$minutes+=5) {
+    for ($minutes=0;$minutes<=1380;$minutes+=5) {
         $start=$base->modify('+'.$minutes.' minutes');
         $end=$start->modify('+60 minutes');
-        if (!validCustomerSlot($start,$end)) continue;
+        if (!validCustomerSlot($start,$end,$policy)) continue;
         $a=stamp($start);$b=stamp($end);
         $taken=false;
         foreach ($periods as $p) {
@@ -160,10 +160,12 @@ try {
         $day = (string)($body['day'] ?? '');
         $time = (string)($body['time'] ?? '');
         [$start,$end] = dayAndTime($day,$time);
-        if (!validCustomerSlot($start,$end)) fail('Selected time is not available',409);
+        if (!validCustomerSlot($start,$end,schedulePolicy($db))) fail('Selected time is not available',409);
         $db->beginTransaction();
         try {
             lockDay($db,$day);
+            $policy=schedulePolicy($db,true);
+            if(!validCustomerSlot($start,$end,$policy)) fail('Selected time is no longer available',409);
             $inv = activeInvitation($db,$m[1],true);
             if (busy($db,$start,$end)) fail('Time has just been reserved. Select another.',409);
             $tracking = secret();
@@ -198,6 +200,13 @@ try {
         require dirname(__DIR__).'/app/sync.php';
         rateLimit($db,'sync-write',180,60);
         syncMutation($db,$body);
+    }
+    if ($path === '/admin/work-hours' && $method === 'GET') {
+        send(schedulePolicy($db));
+    }
+    if ($path === '/admin/work-hours' && $method === 'POST') {
+        rateLimit($db,'schedule-publish',20,900);
+        send(publishSchedulePolicy($db,$body));
     }
     if ($path === '/admin/overview' && $method === 'GET') {
         $req = $db->query("SELECT id,name,starts_at,
@@ -240,6 +249,10 @@ try {
             if ($m[2]==='approve') {
                 $start=new DateTimeImmutable($row['starts_at'],new DateTimeZone('UTC'));
                 $end=new DateTimeImmutable($row['ends_at'],new DateTimeZone('UTC'));
+                if(schedulePolicy($db,true)['published'] &&
+                    !scheduleAllows($start,$end,schedulePolicy($db))) {
+                    fail('Booking is outside current working hours',409);
+                }
                 if (busy($db,$start,$end,$id)) fail('Time is no longer available',409);
                 $db->prepare('INSERT INTO appointments(request_id,name,phone,starts_at,ends_at)
                      VALUES(?,?,?,?,?)')->execute([$id,$row['name'],$row['phone'],$row['starts_at'],$row['ends_at']]);

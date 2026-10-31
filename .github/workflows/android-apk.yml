@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths: ['android/**', '.github/workflows/android-apk.yml']
 permissions:
-  contents: read
+  contents: write
 jobs:
   debug-apk:
     runs-on: ubuntu-latest
@@ -34,3 +34,17 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
+      - name: Publish beta15 APK as a downloadable GitHub prerelease
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-beta15]')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v1.4.0-beta15"
+          DEST="VaghYar-v1.4.0-beta15-debug.apk"
+          cp android/app/build/outputs/apk/debug/app-debug.apk "$DEST"
+          gh release create "$TAG" "$DEST" \
+            --repo "${{ github.repository }}" \
+            --target "$GITHUB_SHA" \
+            --title "VaghYar 1.4.0 beta 15 — Calendar-first Android" \
+            --notes "Android test build (not production). Persian calendar-first UX, appointment sheet, Vazirmatn and paste-safe phone input. Do not uninstall old beta; export encrypted backup before restore. Login is test-only and security review pending." \
+            --prerelease --latest=false

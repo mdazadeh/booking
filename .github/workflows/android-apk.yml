@@ -34,13 +34,13 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
-      - name: Publish beta16 APK as a downloadable GitHub prerelease
-        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-beta16]')
+      - name: Publish beta17 APK as a downloadable GitHub prerelease
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-beta17]')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="v1.5.0-beta16"
-          DEST="VaghYar-v1.5.0-beta16-debug.apk"
+          TAG="v1.5.1-beta17"
+          DEST="VaghYar-v1.5.1-beta17-debug.apk"
           cp android/app/build/outputs/apk/debug/app-debug.apk "$DEST"
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release upload "$TAG" "$DEST" --repo "${{ github.repository }}" --clobber
@@ -48,7 +48,7 @@ jobs:
             gh release create "$TAG" "$DEST" \
               --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "VaghYar 1.5.0 beta 16 — Calendar-first Android" \
-              --notes "Android 1.5 beta (not production). Time-grid calendar, office hours (on device), appointment rescheduling, attendance states (local only), unified encrypted booking admin session. Keep old app and export encrypted backup before restoring. Backend deployment and live-device QA still pending." \
+              --title "VaghYar 1.5.1 beta 17 — Calendar-first Android" \
+              --notes "VaghYar 1.5.1 beta17 test build: overlap-safe calendar rows, client cascade delete with queued remote cancellations, two-step device-only reset, split hour/minute entry, pastel counseling-themed UI, larger Vazirmatn, more icons and no break settings. Do not uninstall old beta. Export and restore encrypted backup for migration. Server changes are not deployed." \
               --prerelease --latest=false
           fi

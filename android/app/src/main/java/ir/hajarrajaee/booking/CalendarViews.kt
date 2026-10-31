@@ -1,6 +1,9 @@
 package ir.hajarrajaee.booking
 
 import androidx.compose.foundation.*
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -158,13 +161,16 @@ fun CalendarPanel(
     }.sortedBy{it.startMillis}
     val clientNames=remember(clients){clients.associate{it.id to it.name}}
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+        .animateContentSize(animationSpec=tween(230))
         .padding(horizontal=14.dp,vertical=13.dp),
         verticalArrangement=Arrangement.spacedBy(13.dp)){
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,
             horizontalArrangement=Arrangement.SpaceBetween){
             Column {
                 Text("برنامه نوبت‌ها",fontSize=24.sp,fontWeight=FontWeight.Bold,color=Forest)
-                Text(Jalali.label(selected),color=Slate,fontSize=15.sp)
+                Crossfade(targetState=selected,animationSpec=tween(200),label="تغییر روز"){
+                    shownDay->Text(Jalali.label(shownDay),color=Slate,fontSize=15.sp)
+                }
             }
             FilledTonalButton(onClick={onSelect(Jalali.today())},
                 shape=RoundedCornerShape(15.dp),
@@ -200,7 +206,8 @@ fun CalendarPanel(
         }
         Card(shape=RoundedCornerShape(22.dp),colors=CardDefaults.cardColors(containerColor=Color.White)){
             Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
-                when(mode){
+                Crossfade(targetState=mode,animationSpec=tween(210),label="نمای تقویم"){shownMode->
+                when(shownMode){
                     0->JalaliMonthPicker(selected,onSelect,sessions)
                     1->{
                         val start=selected.minusDays(Jalali.weekday(selected).toLong())
@@ -233,6 +240,7 @@ fun CalendarPanel(
                         }
                     }
                     else->CompactWeekStrip(selected,onSelect,sessions)
+                }
                 }
             }
         }

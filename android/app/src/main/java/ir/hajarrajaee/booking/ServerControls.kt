@@ -2,6 +2,10 @@ package ir.hajarrajaee.booking
 
 import android.content.Context
 import androidx.compose.foundation.layout.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -47,6 +51,10 @@ fun ServerControls(context:Context,onDataChanged:()->Unit){
                 OutlinedButton(onClick={SyncClient.disconnect(context);connected=false;message="اتصال سرور قطع شد."}){
                     Text("قطع اتصال")
                 }
+            }
+            AnimatedVisibility(visible=busy,
+                enter=fadeIn(tween(160)),exit=fadeOut(tween(140))){
+                VaghLoadingLine("در حال برقراری ارتباط و همگام‌سازی...")
             }
             if(message.isNotBlank())Text(message,color=Slate)
         }

@@ -15,6 +15,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.Image
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -99,8 +105,8 @@ fun NativeApp(context: Context) {
                 Column(Modifier.fillMaxWidth().padding(28.dp)) {
                     Row(verticalAlignment=Alignment.CenterVertically,
                         horizontalArrangement=Arrangement.spacedBy(14.dp)){
-                        Image(painter=painterResource(R.drawable.vaghyar_hourglass),
-                            contentDescription="لوگوی ساعت‌شنی وقت‌یار",
+                        Image(painter=painterResource(R.drawable.ic_booking),
+                            contentDescription="لوگوی تقویم رنگی وقت‌یار",
                             modifier=Modifier.size(82.dp).clip(RoundedCornerShape(23.dp)),
                             contentScale=ContentScale.Crop)
                         Column {
@@ -156,8 +162,8 @@ fun NativeApp(context: Context) {
             Surface(color=Color(0xFFF5EFFF),shadowElevation=1.dp) {
                 Row(Modifier.fillMaxWidth().padding(start=16.dp,end=16.dp,top=13.dp,bottom=13.dp),
                     verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(11.dp)){
-                    Image(painter=painterResource(R.drawable.vaghyar_hourglass),
-                        contentDescription="لوگوی ساعت‌شنی وقت‌یار",
+                    Image(painter=painterResource(R.drawable.ic_booking),
+                        contentDescription="لوگوی تقویم رنگی وقت‌یار",
                         modifier=Modifier.size(58.dp).clip(RoundedCornerShape(19.dp)),
                         contentScale=ContentScale.Crop)
                     Column(Modifier.weight(1f)) {
@@ -193,15 +199,25 @@ fun NativeApp(context: Context) {
         }
     ){ padding ->
         Box(Modifier.fillMaxSize().padding(padding)){
-            when(currentPage){
-                0->CalendarPanel(activeDay,{activeDay=it},sessions,clients,
-                    onEdit={s->openQuick(Jalali.time(s.startMillis).toLocalDate(),
-                        Jalali.time(s.startMillis).toLocalTime(),s)},
-                    onAdd={date,time->activeDay=date;openQuick(date,time)})
-                1->ClientsPanel(db,clients,sessions,{refresh()})
-                2->RequestsPanel(context,{refresh()})
-                else->MorePanel(context,onLogout={signedIn=false},onOpenOnline={currentPage=2},
-                    onDataChanged={refresh()})
+            AnimatedContent(
+                targetState=currentPage,
+                modifier=Modifier.fillMaxSize(),
+                transitionSpec={
+                    (fadeIn(animationSpec=tween(230)) +
+                        slideInHorizontally(animationSpec=tween(240)){if(targetState>initialState)40 else -40})
+                        .togetherWith(fadeOut(animationSpec=tween(120)))
+                },label="حرکت صفحات وقت‌یار"
+            ){page->
+                when(page){
+                    0->CalendarPanel(activeDay,{activeDay=it},sessions,clients,
+                        onEdit={s->openQuick(Jalali.time(s.startMillis).toLocalDate(),
+                            Jalali.time(s.startMillis).toLocalTime(),s)},
+                        onAdd={date,time->activeDay=date;openQuick(date,time)})
+                    1->ClientsPanel(db,clients,sessions,{refresh()})
+                    2->RequestsPanel(context,{refresh()})
+                    else->MorePanel(context,onLogout={signedIn=false},onOpenOnline={currentPage=2},
+                        onDataChanged={refresh()})
+                }
             }
             if(syncWarning.isNotBlank() && currentPage==3)Text(syncWarning,color=Color(0xFFA34B2D))
         }

@@ -1,6 +1,13 @@
 package ir.hajarrajaee.booking
 
 import androidx.compose.foundation.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -47,6 +54,7 @@ fun QuickBookingSheet(
     var repeat by remember(date,key){mutableStateOf(Repeat.NONE)}
     var repeatCount by remember(date,key){mutableStateOf("4")}
     var repeatOpen by remember(date,key){mutableStateOf(false)}
+    var customDates by remember(date,key){mutableStateOf(emptySet<LocalDate>())}
     var error by remember(date,key){mutableStateOf("")}
     var confirmDelete by remember{mutableStateOf(false)}
     var progress by remember(date,key){mutableStateOf(edit?.progress ?: "scheduled")}
@@ -54,6 +62,7 @@ fun QuickBookingSheet(
     ModalBottomSheet(onDismissRequest=onDismiss,containerColor=Color(0xFFFDF9FC),
         sheetState=rememberModalBottomSheetState(skipPartiallyExpanded=true)) {
         Column(Modifier.fillMaxWidth().heightIn(max=670.dp).verticalScroll(rememberScrollState())
+            .animateContentSize(animationSpec=tween(220))
             .padding(start=18.dp,end=18.dp,bottom=30.dp),
             verticalArrangement=Arrangement.spacedBy(10.dp)){
             Row(verticalAlignment=Alignment.CenterVertically,
@@ -73,9 +82,13 @@ fun QuickBookingSheet(
                 Text(Jalali.label(chosenDate),color=Slate,fontSize=16.sp)
                 TextButton(onClick={showCalendar=!showCalendar}){Text("تغییر تاریخ")}
             }
-            if(showCalendar)Card(colors=CardDefaults.cardColors(containerColor=Color.White)){
-                Column(Modifier.padding(10.dp)){
-                    JalaliMonthPicker(chosenDate,{chosenDate=it;showCalendar=false})
+            AnimatedVisibility(visible=showCalendar,
+                enter=fadeIn(tween(180))+expandVertically(tween(180)),
+                exit=fadeOut(tween(140))+shrinkVertically(tween(140))){
+                Card(colors=CardDefaults.cardColors(containerColor=Color.White)){
+                    Column(Modifier.padding(10.dp)){
+                        JalaliMonthPicker(chosenDate,{chosenDate=it;showCalendar=false})
+                    }
                 }
             }
             val window=WorkingHours.forDate(context,chosenDate)
@@ -170,17 +183,45 @@ fun QuickBookingSheet(
                 TextButton(onClick={repeatOpen=!repeatOpen}){
                     Text(if(repeatOpen)"بستن گزینه‌های تکرار" else "↻ تکرار نوبت (اختیاری)")
                 }
-                if(repeatOpen){
-                    listOf(Repeat.NONE,Repeat.WEEKLY,Repeat.BIWEEKLY,Repeat.MONTHLY).forEach{option->
-                        Row(verticalAlignment=Alignment.CenterVertically){
-                            RadioButton(selected=repeat==option,onClick={repeat=option})
-                            Text(option.label,Modifier.clickable{repeat=option})
+                AnimatedVisibility(visible=repeatOpen,
+                    enter=fadeIn(tween(180))+expandVertically(tween(180)),
+                    exit=fadeOut(tween(140))+shrinkVertically(tween(140))){
+                    Column(verticalArrangement=Arrangement.spacedBy(7.dp)){
+                        listOf(Repeat.NONE,Repeat.WEEKLY,Repeat.BIWEEKLY,Repeat.MONTHLY,Repeat.CUSTOM)
+                            .forEach{option->
+                            Row(verticalAlignment=Alignment.CenterVertically){
+                                RadioButton(selected=repeat==option,onClick={repeat=option})
+                                Text(if(option==Repeat.CUSTOM)"چند تاریخ دلخواه (ساعت یکسان)"
+                                    else option.label,Modifier.clickable{repeat=option})
+                            }
+                        }
+                        if(repeat==Repeat.CUSTOM){
+                            Text("روزهای دلخواه را در تقویم انتخاب کنید؛ همه با ساعت همین فرم ثبت می‌شوند.",
+                                color=Slate,fontSize=13.sp)
+                            Card(shape=RoundedCornerShape(19.dp),
+                                colors=CardDefaults.cardColors(containerColor=Color.White)){
+                                Column(Modifier.padding(10.dp)){
+                                    JalaliMonthPicker(chosenDate,onSelect={},
+                                        custom=customDates+chosenDate,
+                                        onToggleCustom={day->
+                                            if(!day.isBefore(chosenDate)&&day!=chosenDate){
+                                                customDates=if(day in customDates)customDates-day
+                                                    else customDates+day
+                                            }
+                                        })
+                                }
+                            }
+                            Text(((customDates.filter{!it.isBefore(chosenDate)}.size+1).toString().faDigits())+
+                                " تاریخ انتخاب شده",fontSize=14.sp,color=Green)
+                        }else if(repeat!=Repeat.NONE){
+                            OutlinedTextField(repeatCount.faDigits(),{
+                                repeatCount=it.asciiDigits().filter(Char::isDigit).take(3)},
+                                modifier=Modifier.fillMaxWidth(),
+                                label={Text("تعداد نوبت‌ها؛ حداکثر ۱۰۴")},
+                                keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),
+                                singleLine=true)
                         }
                     }
-                    if(repeat!=Repeat.NONE)OutlinedTextField(repeatCount.faDigits(),{
-                        repeatCount=it.asciiDigits().filter(Char::isDigit).take(3)},
-                        modifier=Modifier.fillMaxWidth(),label={Text("تعداد نوبت‌ها؛ حداکثر ۱۰۴")},
-                        keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),singleLine=true)
                 }
             }
             if(error.isNotBlank())Text(error,color=Color(0xFFB74435))
@@ -191,24 +232,27 @@ fun QuickBookingSheet(
                     val start=LocalTime.parse(normalizedTime)
                     val length=duration.toIntOrNull()?:0
                     require(length in 5..480){"مدت جلسه باید بین ۵ تا ۴۸۰ دقیقه باشد."}
-                    val dates=if(edit==null)recurrenceDates(chosenDate,repeat,
-                        if(repeat==Repeat.NONE)1 else (repeatCount.toIntOrNull()?:0),emptySet())
-                    else listOf(chosenDate)
+                    val count=when(repeat){
+                        Repeat.NONE->1
+                        Repeat.CUSTOM->customDates.count{!it.isBefore(chosenDate)}+1
+                        else->repeatCount.toIntOrNull()?:0
+                    }
+                    require(count in 1..104){"تعداد نوبت‌ها باید بین ۱ تا ۱۰۴ باشد."}
+                    val dates=if(edit==null)recurrenceDates(chosenDate,repeat,count,customDates)
+                        else listOf(chosenDate)
                     val moving=edit==null || Jalali.millis(chosenDate,start)!=edit.startMillis ||
                         length!=edit.minutes
                     if(moving) require(dates.all{WorkingHours.validate(context,it,start,length)}){
                         "زمان انتخابی خارج از ساعات کاری است."
                     }
                     if(edit==null){
-                        val count=if(repeat==Repeat.NONE)1 else (repeatCount.toIntOrNull()?:0)
-                        require(count in 1..104){"تعداد جلسات باید بین ۱ تا ۱۰۴ باشد."}
                         if(newClient){
                             require(name.trim().isNotEmpty()){"نام مراجع را وارد کنید."}
                             store.createClientAndSessions(name,canonicalPhone(phone),chosenDate,
-                                start,length,repeat,count,emptySet(),topic)
+                                start,length,repeat,count,customDates,topic)
                         }else{
                             val clientId=chosen?:throw IllegalArgumentException("مراجع را انتخاب کنید.")
-                            store.addSessions(clientId,chosenDate,start,length,repeat,count,emptySet(),topic)
+                            store.addSessions(clientId,chosenDate,start,length,repeat,count,customDates,topic)
                         }
                     }else store.editSession(edit,Jalali.millis(chosenDate,start),length,false)
                     onSaved()
